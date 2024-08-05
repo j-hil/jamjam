@@ -1,0 +1,66 @@
+repos:
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-yaml
+      - id: debug-statements
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+      - id: requirements-txt-fixer
+      - id: trailing-whitespace
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.6
+    hooks:
+      - id: ruff
+        args:
+          - --fix
+          - --unsafe-fixes
+      - id: ruff-format
+
+  - repo: https://github.com/psf/black-pre-commit-mirror
+    rev: 24.4.2
+    hooks:
+      - id: black
+        args:
+          - --skip-magic-trailing-comma
+          - --unstable
+        language_version: python3.11
+      - id: black-jupyter
+        args:
+          - --skip-magic-trailing-comma
+          - --unstable
+        language_version: python3.11
+
+  # TODO: I think this is covered by `ruff`?
+  # - repo: https://github.com/PyCQA/autoflake
+  #   rev: v2.3.1
+  #   hooks:
+  #   -   id: autoflake
+  #       args:
+  #         - --in-place
+  #         - --expand-star-imports
+  #         - --remove-duplicate-keys
+  #         - --remove-unused-variables
+  #         - --remove-all-unused-imports
+
+  - repo: local  # run mypy locally so it uses the local venv
+    hooks:
+      - id: mypy
+        name: mypy
+        entry: mypy
+        language: system
+        types_or: [python, pyi]
+
+  - repo: local  # run pylint locally so it uses local venv
+    hooks:
+      - id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types_or: [python, pyi]
