@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import inspect
 from collections.abc import Callable
-from typing import Any, ParamSpec, TypeVar
+from typing import Any, Concatenate, ParamSpec, TypeVar
 
 P = ParamSpec("P")
 R = TypeVar("R")
@@ -28,4 +28,11 @@ T = TypeVar("T")
 
 
 def copy_type(_: T) -> Callable[[Any], T]:
+    return lambda x: x
+
+
+def copy_method_signature(
+    typed: Callable[Concatenate[Any, P], object],
+) -> Callable[[Callable[..., R]], Callable[P, R]]:
+    _ = typed  # TODO: extract the relevant info from `typed` at runtime
     return lambda x: x

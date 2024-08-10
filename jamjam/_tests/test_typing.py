@@ -1,9 +1,10 @@
 import inspect
-from typing import Any, assert_type
+from collections.abc import Callable
+from typing import Any, assert_type, overload
 
 import pytest
 
-from jamjam.typing import copy_signature
+from jamjam.typing import copy_signature, copy_type, use_overloads
 
 
 def test_copy_signature() -> None:
@@ -23,3 +24,33 @@ def test_copy_signature() -> None:
         _ = g(1, [], "", "", q=True)  # type: ignore[call-arg]
 
     assert inspect.signature(f) == inspect.signature(g)
+
+
+def test_cope_type() -> None:
+    @copy_type(hasattr)
+    def noattr(*args: Any, **kwargs: Any) -> bool:
+        return not hasattr(*args, **kwargs)
+
+    assert_type(noattr, Callable[[object, str], bool])
+
+    x = copy_type(1)("")  # can be used to lie
+    assert_type(x, int)
+
+
+def test_use_overloads() -> None:
+    @overload
+    def f(*, x: int, y: str) -> float:
+        return x + int(y)
+
+    @overload
+    def f(*, x: str, z: str) -> str:
+        return x + z
+
+    @use_overloads
+    def f() -> None: ...
+
+    assert f(x=1, y="2") == 3
+    assert f(x="a", z="b") == "ab"
+
+    with pytest.raises(TypeError):
+        f(z="a", y="b")  # type: ignore[call-overload]
