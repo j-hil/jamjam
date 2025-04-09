@@ -2,25 +2,30 @@ import inspect
 from collections.abc import Callable
 from typing import Any, assert_type, overload
 
-import pytest
+from pytest import raises
 
-from jamjam.typing import copy_signature, copy_type, use_overloads
+from jamjam.typing import (
+    Seq,
+    copy_args,
+    copy_type,
+    use_overloads,
+)
 
 
 def test_copy_signature() -> None:
-    def f(x: int, y: list[int], *args: str, z: bool) -> float:
+    def f(x: int, y: Seq[int], *args: str, z: bool) -> float:
         _ = x, y, args, z
         return 10
 
-    @copy_signature(f)
+    @copy_args(f)
     def g(*args: Any, **kwargs: Any) -> str:
         return str(f(*args, **kwargs))
 
     a = g(1, [], "", "", z=True)  # passes type check
-    assert_type(a, str)  # keeps return type of original function
+    assert_type(a, str)  # keeps return type of original
     assert a == "10"
 
-    with pytest.raises(TypeError, match=r"unexpected keyword"):
+    with raises(TypeError, match=r"unexpected keyword"):
         _ = g(1, [], "", "", q=True)  # type: ignore[call-arg]
 
     assert inspect.signature(f) == inspect.signature(g)
@@ -52,5 +57,5 @@ def test_use_overloads() -> None:
     assert f(x=1, y="2") == 3
     assert f(x="a", z="b") == "ab"
 
-    with pytest.raises(TypeError):
+    with raises(TypeError):
         f(z="a", y="b")  # type: ignore[call-overload]

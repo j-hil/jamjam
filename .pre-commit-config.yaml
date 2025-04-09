@@ -15,27 +15,13 @@ repos:
       - id: trailing-whitespace
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.6
+    rev: v0.11.4
     hooks:
       - id: ruff
         args:
           - --fix
           - --unsafe-fixes
       - id: ruff-format
-
-  - repo: https://github.com/psf/black-pre-commit-mirror
-    rev: 24.4.2
-    hooks:
-      - id: black
-        args:
-          - --skip-magic-trailing-comma
-          - --unstable
-        language_version: python3.11
-      - id: black-jupyter
-        args:
-          - --skip-magic-trailing-comma
-          - --unstable
-        language_version: python3.11
 
   # TODO: I think this is covered by `ruff`?
   # - repo: https://github.com/PyCQA/autoflake
@@ -49,16 +35,15 @@ repos:
   #         - --remove-unused-variables
   #         - --remove-all-unused-imports
 
-  - repo: local  # run mypy locally so it uses the local venv
+  - repo: local
     hooks:
+      # run mypy locally so it uses the local venv
       - id: mypy
         name: mypy
         entry: mypy
         language: system
         types_or: [python, pyi]
-
-  - repo: local  # run pylint locally so it uses local venv
-    hooks:
+      # run pylint locally so it uses local venv
       - id: pylint
         name: pylint
         entry: pylint
