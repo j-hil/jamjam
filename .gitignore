@@ -1,10 +1,19 @@
+# IDE Settings
 .vscode/
 
+# Python Bytecode
 __pycache__/
+
+# Packaging
 *.egg-info/
 
+# Testing & Tooling
 .mypy_cache/
 .pytest_cache/
 .ruff_cache/
 
+# Virtual Environments
 .venv/
+
+# Sphinx Docs
+_build/
