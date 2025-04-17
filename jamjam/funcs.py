@@ -31,8 +31,8 @@ class DecoratorFactory(Generic[_P]):
 
     For a factory that returns simple decorators (i.e. a
     parameterized decorator), this adds the ability to make
-    calls in the standard ways; `@decorator`,
-    `@decorator(...)` and `f = decorator(f, ...)`.
+    calls in the standard ways; ``@decorator``,
+    ``@decorator(...)`` and ``f = decorator(f, ...)``.
 
     Most appropriate for factories with kwargs-only and
     fully defaulted signatures.
@@ -79,10 +79,10 @@ class _Expander(Protocol[_T_co, _P]):
 def expand(cls: Fn[_P, _T_con]) -> _Expander[_T_con, _P]:
     """Define and implement a function using a class.
 
-    Define a function who's signature matches `cls.__new__`.
+    Define a func with signature matching ``cls.__new__``.
     The decorated function is implemented with 1 arg;
     this arg is constructed by passing the callers
-    args into `cls`.
+    args into ``cls``.
     """
 
     def decorator(f: Fn[[_T_con], _R]) -> Fn[_P, _R]:
