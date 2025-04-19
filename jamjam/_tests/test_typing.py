@@ -6,7 +6,7 @@ from pytest import raises
 
 from jamjam.typing import (
     Seq,
-    copy_args,
+    copy_params,
     copy_type,
     use_overloads,
 )
@@ -17,11 +17,11 @@ def test_copy_signature() -> None:
         _ = x, y, args, z
         return 10
 
-    @copy_args(f)
+    @copy_params(f)
     def g(*args: Any, **kwargs: Any) -> str:
         return str(f(*args, **kwargs))
 
-    a = g(1, [], "", "", z=True)  # passes type check
+    a = g(1, [], "", "", z=True)  # passes static check
     assert_type(a, str)  # keeps return type of original
     assert a == "10"
 

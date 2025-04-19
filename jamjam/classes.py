@@ -19,7 +19,7 @@ class Singleton:
 
 
 def mk_repr(v: object, *args: object, **kwds: object) -> str:
-    """Create a repr-like string for `v` using params."""
+    """Create a repr-like string for ``v`` using params."""
     cls_name = type(v).__qualname__
     body = ", ".join([
         *(str(arg) for arg in args),

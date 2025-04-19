@@ -1,19 +1,24 @@
-.. jamjam documentation master file, created by
-   sphinx-quickstart on Thu Apr 17 20:44:11 2025.
-   You can adapt this file completely to your liking, but it should at least
-   contain the root `toctree` directive.
+Okay, 3... 2... 1... Let's Jam!
+===============================
 
-jamjam documentation
-====================
+.. include:: ../README.rst
+   :start-after: start-intro
+   :end-before: end-intro
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
 
+Installation
+------------
+
+JamJam can be installed  ``pip``:
+
+.. code-block:: console
+
+    $ pip install jamjam
+
+JamJam uses XXX versioning.
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-   hello
-   advanced/stuff
+   intro
+   Reference API <api/modules>
