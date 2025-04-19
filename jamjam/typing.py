@@ -5,35 +5,36 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from functools import update_wrapper
 from inspect import get_annotations, signature
-from typing import (
-    Never,
-    ParamSpec,
-    Protocol,
-    TypeVar,
-    cast,
-    get_overloads,
-)
+from typing import Never, Protocol, cast, get_overloads
 
-_P = ParamSpec("_P")
-_R = TypeVar("_R")
-_T = TypeVar("_T")
-_K = TypeVar("_K")
-_V_co = TypeVar("_V_co", covariant=True)
+from jamjam._lib.typevars import K, P, R, T, V_co
 
-Fn = Callable[_P, _R]
-Map = Mapping[_K, _V_co]
-Seq = Sequence[_V_co]
-No = Never
+Fn = Callable[P, R]  #:
+Map = Mapping[K, V_co]  #:
+Seq = Sequence[V_co]  #:
+No = Never  #: alias of ``Never``
 
 
-class _ArgCopier(Protocol[_P]):
-    def __call__(self, f: Fn[..., _R], /) -> Fn[_P, _R]: ...
+class ParamsCopier(Protocol[P]):
+    "A func which copies params for static checkers."
+
+    def __call__(self, f: Fn[..., R], /) -> Fn[P, R]: ...
 
 
-def copy_args(f: Fn[_P, object], /) -> _ArgCopier[_P]:
-    """Give (unenforced) signature of `f`."""
+def copy_params(f: Fn[P, object], /) -> ParamsCopier[P]:
+    """Transfer static signature of one func to another.
 
-    def decorator(g: Fn[..., _R]) -> Fn[_P, _R]:
+    Does not enforce new signature. Best for tweaking output
+    of functions without having to re-expose every argument.
+
+    .. code-block::
+
+        @copy_params(range)
+        def sum_range(*args, **kwds) -> int:
+            return sum(range(*args, **kwds))
+    """
+
+    def decorator(g: Fn[..., R]) -> Fn[P, R]:
         g.__signature__ = signature(f)  # type: ignore[attr-defined]
         g.__annotations__ = get_annotations(f)
         return g
@@ -41,43 +42,42 @@ def copy_args(f: Fn[_P, object], /) -> _ArgCopier[_P]:
     return decorator
 
 
-def copy_type(_: _T, /) -> Fn[[object], _T]:
-    """Logically `copy_type(x)(y)` ⟺ `cast(type(x), y)`."""
-    return lambda x: cast(_T, x)
+def copy_type(v: T, /) -> Fn[[object], T]:
+    "Create caster for ``type(v)``."
+    _ = v
+    return lambda x: cast(T, x)
 
 
 def _overload_err(
     f: Fn[..., object],
     args: Seq[object],
-    kwds: Map[str, object],
+    kwargs: Map[str, object],
 ) -> TypeError:
     name = f"{f.__module__}.{f.__qualname__}"
-    msg = f"No overload of {name} matches {args=}, {kwds=}."
+    msg = f"No overload of {name} for {args=}, {kwargs=}."
     return TypeError(msg)
 
 
-def check_overloads(func: Fn[_P, _R], /) -> Fn[_P, _R]:
-    """Check calls match one of the overload signatures."""
+def check_overloads(f: Fn[P, R], /) -> Fn[P, R]:
+    "Check calls to ``f`` match an overload signatures."
     # TODO: add runtime type-checking?
 
-    def new_func(*args: _P.args, **kwargs: _P.kwargs) -> _R:
-        for func_overload in get_overloads(func):
+    def new_func(*args: P.args, **kwargs: P.kwargs) -> R:
+        for func_overload in get_overloads(f):
             s = signature(func_overload)
             try:
                 bound_args = s.bind(*args, **kwargs)
             except TypeError:
                 continue
-            return func(
-                *bound_args.args, **bound_args.kwargs
-            )
-        raise _overload_err(func, args, kwargs)
+            return f(*bound_args.args, **bound_args.kwargs)
+        raise _overload_err(f, args, kwargs)
 
-    update_wrapper(new_func, func)
+    update_wrapper(new_func, f)
     return new_func
 
 
 def use_overloads(f: Fn[[], None], /) -> Fn[..., object]:
-    """Use `@overload` bodies as the implementation of `f`.
+    """Use ``@overload`` bodies to implement of ``f``.
 
     No (runtime) types checked, so signatures should not
     overlap even after stripping type hints.

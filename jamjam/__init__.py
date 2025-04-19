@@ -1,3 +1,5 @@
 """James' jamboree of code."""
 
-__all__ = ("typing", "decorator", "classes")
+from importlib import metadata
+
+VERSION = metadata.version(__package__ or "jamjam")  #:

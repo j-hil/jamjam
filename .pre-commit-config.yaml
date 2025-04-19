@@ -17,11 +17,11 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.11.4
     hooks:
+      - id: ruff-format
       - id: ruff
         args:
           - --fix
           - --unsafe-fixes
-      - id: ruff-format
 
   # TODO: I think this is covered by `ruff`?
   # - repo: https://github.com/PyCQA/autoflake

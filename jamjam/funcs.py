@@ -3,30 +3,21 @@
 from __future__ import annotations
 
 from functools import update_wrapper
-from typing import (
-    Generic,
-    ParamSpec,
-    Protocol,
-    TypeVar,
-    overload,
-)
+from typing import TYPE_CHECKING, Generic, Protocol, overload
 
-from jamjam.typing import Fn
+from jamjam._lib.typevars import F, P, R, T_co, T_con
 
-_F = TypeVar("_F", bound=Fn)
-_P = ParamSpec("_P")
-_R = TypeVar("_R")
-_T_co = TypeVar("_T_co", covariant=True)
-_T_con = TypeVar("_T_con", contravariant=True)
+if TYPE_CHECKING:
+    from jamjam.typing import Fn
 
 
 class Decorator(Protocol):
     """A signature preserving un-parameterized decorator."""
 
-    def __call__(self, f: _F, /) -> _F: ...
+    def __call__(self, f: F, /) -> F: ...
 
 
-class DecoratorFactory(Generic[_P]):
+class DecoratorFactory(Generic[P]):
     """Add standard behaviors to simple decorator factories.
 
     For a factory that returns simple decorators (i.e. a
@@ -38,9 +29,9 @@ class DecoratorFactory(Generic[_P]):
     fully defaulted signatures.
     """
 
-    __wrapped__: Fn[_P, Decorator]
+    __wrapped__: Fn[P, Decorator]
 
-    def __init__(self, f: Fn[_P, Decorator]) -> None:
+    def __init__(self, f: Fn[P, Decorator]) -> None:
         update_wrapper(self, f)
 
     @overload
@@ -48,35 +39,33 @@ class DecoratorFactory(Generic[_P]):
         self,
         f: None = None,
         /,
-        *args: _P.args,
-        **kwds: _P.kwargs,
+        *args: P.args,
+        **kwds: P.kwargs,
     ) -> Decorator: ...
 
     @overload
     def __call__(
-        self, f: _F, /, *args: _P.args, **kwargs: _P.kwargs
-    ) -> _F: ...
+        self, f: F, /, *args: P.args, **kwds: P.kwargs
+    ) -> F: ...
 
     def __call__(
         self,
-        f: _F | None = None,
+        f: F | None = None,
         /,
-        *args: _P.args,
-        **kwargs: _P.kwargs,
-    ) -> _F | Decorator:
-        decorator = self.__wrapped__(*args, **kwargs)
+        *args: P.args,
+        **kwds: P.kwargs,
+    ) -> F | Decorator:
+        decorator = self.__wrapped__(*args, **kwds)
         if f is None:
             return decorator
         return decorator(f)
 
 
-class _Expander(Protocol[_T_co, _P]):
-    def __call__(
-        self, f: Fn[[_T_co], _R], /
-    ) -> Fn[_P, _R]: ...
+class _Expander(Protocol[T_co, P]):
+    def __call__(self, f: Fn[[T_co], R], /) -> Fn[P, R]: ...
 
 
-def expand(cls: Fn[_P, _T_con]) -> _Expander[_T_con, _P]:
+def expand(cls: Fn[P, T_con]) -> _Expander[T_con, P]:
     """Define and implement a function using a class.
 
     Define a func with signature matching ``cls.__new__``.
@@ -85,8 +74,8 @@ def expand(cls: Fn[_P, _T_con]) -> _Expander[_T_con, _P]:
     args into ``cls``.
     """
 
-    def decorator(f: Fn[[_T_con], _R]) -> Fn[_P, _R]:
-        def g(*args: _P.args, **kwargs: _P.kwargs) -> _R:
+    def decorator(f: Fn[[T_con], R]) -> Fn[P, R]:
+        def g(*args: P.args, **kwargs: P.kwargs) -> R:
             arg = cls(*args, **kwargs)
             return f(arg)
 

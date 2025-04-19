@@ -16,7 +16,16 @@ dependencies = []
 
 
 [project.optional-dependencies]
-dev = ["mypy", "pre-commit", "pylint", "pytest", "sphinx"]
+dev = [
+    # tooling:
+    "mypy",
+    "pre-commit",
+    "pylint",
+    "pytest",
+    # docs:
+    "sphinx",
+    "furo",
+]
 
 
 [project.scripts]
@@ -74,8 +83,10 @@ lint.ignore = [
     "D105",    # undocumented-magic-method
     "D203",    # one-blank-line-before-class
     "D213",    # multi-line-summary-second-line
+    "D300",    # triple-single-quotes
     "FIX002",  # line-contains-todo
     "ISC001",  # single-line-implicit-string-concatenation
+    "PLC0105", # type-name-incorrect-variance
     "PLR2004", # magic-value-comparison
     "PT013",   # pytest-incorrect-pytest-import
     "S101",    # assert
@@ -84,7 +95,6 @@ lint.ignore = [
     "TC006",   # runtime-cast-value
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
-    "PLC0105", # type-name-incorrect-variance
     # docs are on the TODO list:
     "D102",
     "D107",
