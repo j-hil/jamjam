@@ -104,6 +104,7 @@ lint.extend-per-file-ignores."docs/conf.py" = [
     "INP001", # implicit-namespace-package;
 ]
 lint.isort.split-on-trailing-comma = false
+lint.isort.extra-standard-library = ["typing_extensions"]
 
 
 [tool.pylint.main]
