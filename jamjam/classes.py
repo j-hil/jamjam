@@ -16,7 +16,7 @@ class Singleton:
             if _Missing.is_(x):
                 ...  # caller missed param
                 return
-            reveal_type(x)  # reveals `int`
+            reveal_type(x)  # reveals ``int``
     """
 
     _self: ClassVar[Self | None] = None

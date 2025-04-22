@@ -5,14 +5,23 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from functools import update_wrapper
 from inspect import get_annotations, signature
-from typing import Never, Protocol, cast, get_overloads
+from typing import (
+    Concatenate,
+    Never,
+    Protocol,
+    cast,
+    get_overloads,
+)
 
 from jamjam._lib.typevars import K, P, R, T, V_co
 
 Fn = Callable[P, R]  #:
 Map = Mapping[K, V_co]  #:
 Seq = Sequence[V_co]  #:
-No = Never  #: alias of ``Never``
+No = Never
+"Alias of ``Never``"
+MethodDef = Fn[Concatenate[T, P], R]
+"Parameterized type for method definitions."
 
 
 class ParamsCopier(Protocol[P]):
