@@ -38,6 +38,6 @@ apidoc_modules = [
     {"path": "../jamjam/", "destination": "api/"}
 ]
 apidoc_exclude_patterns = ["**/test*"]
-apidoc_max_depth = 1
+apidoc_max_depth = 0
 apidoc_separate_modules = True
 apidoc_module_first = True

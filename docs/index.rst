@@ -21,4 +21,4 @@ JamJam uses XXX versioning.
    :maxdepth: 2
 
    intro
-   Reference API <api/modules>
+   Reference API <api/jamjam>
