@@ -28,11 +28,11 @@ def test_factory() -> None:
 
     @my_decorator
     def g(q: list[str]) -> str:
-        return q[0]
+        return f"0th element: {q[0]}"
 
     b = g(["hey"])
     assert_type(b, str)
-    assert b == "hey"
+    assert b == "0th element: hey"
 
     def h(r: int) -> list[int]:
         return [r]
