@@ -19,7 +19,7 @@ from typing import (
 )
 
 from jamjam.classes import mk_repr, mk_subtype
-from jamjam.typing import get_hints
+from jamjam.typing import Hint, get_hints
 
 _, _SimpleCData, _CData, _ = ctypes.c_int.mro()
 _CArgObject = type(ctypes.byref(ctypes.c_int()))
@@ -73,12 +73,12 @@ Int = int | ctypes.c_int
 Str = str | ctypes.c_wchar_p
 
 
-def extract(hint: UnionType | type[Data]) -> type[Data]:
+def extract(hint: Hint) -> type[Data]:
     "Extract the c-type from within a type-union."
     if isinstance(hint, UnionType):
         types = get_args(hint)
         return next(t for t in types if issubclass(t, Data))
-    if issubclass(hint, BaseData):
+    if issubclass(hint, Data):
         return hint
     msg = f"Expected union including a ctype. Got {hint=}"
     raise TypeError(msg)
@@ -93,7 +93,7 @@ class Field:
     "Metadata for a ``c.Struct`` field."
 
     name: str
-    hint: type[object]
+    hint: Hint
     ctype: type[Data]
     uid: _UnionId | None
 
@@ -105,8 +105,7 @@ else:
 
 
 class _NewStructMeta(_PyCStructType, type):
-    # TODO: types here
-    def _mk_field(cls, attr: str, hint: Any) -> Field:
+    def _mk_field(cls, attr: str, hint: Hint) -> Field:
         uid = getattr(cls, attr, None)
         if not isinstance(uid, _UnionId | None):
             msg = (
@@ -149,9 +148,11 @@ class Struct(ctypes.Structure, metaclass=_NewStructMeta):
 
     @classmethod
     def size(cls) -> int:
+        "Get size in bytes of a C object."
         return ctypes.sizeof(cls)
 
     def byref(self) -> ArgObj:
+        "Get 'pointer' to C object usable only as a func arg"
         return ctypes.byref(self)
 
     def __repr__(self) -> str:

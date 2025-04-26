@@ -1,6 +1,8 @@
 from collections.abc import Callable
 from typing_extensions import ParamSpec, TypeVar
 
+# NOTE: would use infer_variance but can't due to
+# https://github.com/python/mypy/issues/17811
 K = TypeVar("K")
 R = TypeVar("R")
 T = TypeVar("T")

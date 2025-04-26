@@ -40,7 +40,7 @@ dev = [
 [tool.mypy]
 # see: https://mypy.readthedocs.io/en/stable/config_file.html
 # TODO: This config can definately be simplified. Move stuff into error code lists._scripts
-# TODO: Rational should be added for each rule's enabling/disabling.
+# Rational should be added for each rule's enabling/disabling.
 allow_redefinition = true
 disallow_incomplete_defs = true
 disallow_untyped_decorators = true
@@ -77,43 +77,51 @@ disable_error_code = [
 target-version = "py311"
 output-format = "concise"
 line-length = 61
+
 format.preview = true
 format.docstring-code-format = true
 format.skip-magic-trailing-comma = true
-# lint.preview = true  # TODO: enable this
+
+lint.preview = true
 lint.select = ["ALL"]
 lint.ignore = [
     "ANN401",  # any-type
+    "B905",    # zip-without-explicit-strict
     "COM812",  # missing-trailing-comma
+    "CPY001",  # missing-copyright-notice
+    "D102",    # https://github.com/astral-sh/ruff/issues/8085
     "D105",    # undocumented-magic-method
+    "D107",    # undocumented-public-init
     "D203",    # one-blank-line-before-class
     "D213",    # multi-line-summary-second-line
     "D300",    # triple-single-quotes
     "D400",    # missing-trailing-period
     "D415",    # missing-terminal-punctuation
+    "DOC201",  # docstring-missing-returns
+    "DOC501",  # docstring-missing-exception
     "FIX002",  # line-contains-todo
     "ISC001",  # single-line-implicit-string-concatenation
     "PLC0105", # type-name-incorrect-variance
     "PLR2004", # magic-value-comparison
     "PT013",   # pytest-incorrect-pytest-import
-    "S101",    # assert
-    "T201",    # print
     "TC001",   # typing-only-first-party-import
     "TC002",   # typing-only-third-party-import
-    "TC003",   # typing-only-standard-library-import
     "TC003",   # typing-only-standard-library-import
     "TC006",   # runtime-cast-value
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
-    "B905",    # zip-without-explicit-strict
-    # docs are on the TODO list:
-    "D102",
-    "D107",
 ]
 lint.extend-per-file-ignores."docs/conf.py" = [
     "A001",   # builtin-variable-shadowing
     "INP001", # implicit-namespace-package;
 ]
+lint.extend-per-file-ignores."jamjam/_tests/*" = [
+    "S101", # assert
+]
+lint.extend-per-file-ignores."jamjam/_scripts/*" = [
+    "T201", # print
+]
+
 lint.isort.split-on-trailing-comma = false
 lint.isort.extra-standard-library = ["typing_extensions"]
 
@@ -122,19 +130,18 @@ lint.isort.extra-standard-library = ["typing_extensions"]
 # https://pylint.pycqa.org/en/latest/user_guide/messages/messages_overview.html
 enable = ["all"]
 disable = [
-    "fixme",                      # currently use TODO's to track issues
-    "missing-class-docstring",    # TODO: may enable docstring checks later
-    "missing-function-docstring", # TODO: may enable docstring checks later
-    "missing-kwoa",               # conflicts with type-checkers
-    "missing-module-docstring",   # TODO: may enable docstring checks later
-    "no-self-argument",           # conflicts using `cls` in metaclasses
-    "protected-access",           # covered by `ruff`
-    "redefined-builtin",          # often ok
-    "too-few-public-methods",     # small classes are fine
-    "too-many-function-args",     # conflicts with type-checkers
-    "unbalanced-tuple-unpacking", # has been wrong & covered by type-checkers
-    "wrong-import-order",         # covered by `ruff`
-    # TODO: configure & enable:
-    "typevar-name-incorrect-variance",
-    "invalid-name",
+    "fixme",                           # currently use these to track issues
+    "invalid-name",                    # too many exceptions
+    "missing-class-docstring",         # flags code in private modules
+    "missing-function-docstring",      # flags code in private modules
+    "missing-kwoa",                    # conflicts with type-checkers
+    "missing-module-docstring",        # flags private modules
+    "no-self-argument",                # conflicts using `cls` in a metaclass
+    "protected-access",                # covered by `ruff`
+    "redefined-builtin",               # often ok
+    "too-few-public-methods",          # small classes are fine
+    "too-many-function-args",          # conflicts with type-checkers
+    "typevar-name-incorrect-variance", # `contra` convention too long
+    "unbalanced-tuple-unpacking",      # has been wrong & covered by type-checkers
+    "wrong-import-order",              # covered by `ruff`
 ]

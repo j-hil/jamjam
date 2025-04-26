@@ -11,9 +11,8 @@ from collections.abc import (
 )
 from functools import update_wrapper
 from inspect import get_annotations, signature
-from types import ModuleType
+from types import ModuleType, UnionType
 from typing import (
-    Any,
     Concatenate,
     Never,
     Protocol,
@@ -22,27 +21,33 @@ from typing import (
 )
 from typing_extensions import ParamSpec, TypeVar
 
-from jamjam._lib.typevars import K, P, R, T, T_co, V_co
+from jamjam._lib.typevars import K, P, R, T
 
-# TODO: default seq & map type-vars too? set auto-variance?
 _DR = TypeVar("_DR", default=object)
 _DP = ParamSpec("_DP", default=...)
+_DV_co = TypeVar("_DV_co", default=object, covariant=True)
+_T1 = TypeVar("_T1")
+_T2 = TypeVar("_T2", default=_T1)
 
 Fn = Callable[_DP, _DR]  #:
-Map = Mapping[K, V_co]  #:
-Seq = Sequence[V_co]  #:
-Module = ModuleType  #:
+Map = Mapping[K, _DV_co]  #:
+Seq = Sequence[_DV_co]  #:
+Module = ModuleType
+"Default type of any module."
 No = Never
 "Alias of ``Never``."
+
+Hint = type[object] | UnionType
+"""Type of any (non-str) type-hint.
+
+NOTE: isn't complete & may be impossible to do so.
+"""
 
 # Abbreviating these was *hard*. Iter = Iterator won as
 # Iterator is the base concept (tho not base class) and the
 # `iter` func really should return `Iter`.
-Iter = Iterator[T_co]  #:
-CanIter = Iterable[T_co]  #:
-
-_T1 = TypeVar("_T1")
-_T2 = TypeVar("_T2", default=_T1)
+Iter = Iterator[_DV_co]  #:
+CanIter = Iterable[_DV_co]  #:
 
 Pair = tuple[_T1, _T2]
 "Type of 2-tuple, with 2nd type defaulting to 1st."
@@ -83,11 +88,9 @@ def copy_type(v: T, /) -> Fn[[object], T]:
     return lambda x: cast(T, x)
 
 
-def _overload_err(
-    f: Fn, args: Seq[object], kwargs: Map[str, object]
-) -> TypeError:
+def _ol_ex(f: Fn, args: Seq, kwds: Map[str]) -> TypeError:
     name = f"{f.__module__}.{f.__qualname__}"
-    msg = f"No overload of {name} for {args=}, {kwargs=}."
+    msg = f"No overload of {name} for {args=}, {kwds=}."
     return TypeError(msg)
 
 
@@ -103,7 +106,7 @@ def check_overloads(f: Fn[P, R], /) -> Fn[P, R]:
             except TypeError:
                 continue
             return f(*bound_args.args, **bound_args.kwargs)
-        raise _overload_err(f, args, kwargs)
+        raise _ol_ex(f, args, kwargs)
 
     update_wrapper(new_func, f)
     return new_func
@@ -125,13 +128,12 @@ def use_overloads(f: Fn[[], None], /) -> Fn[..., object]:
             except TypeError:
                 continue
             return func_overload(*bound.args, **bound.kwargs)
-        raise _overload_err(f, args, kwargs)
+        raise _ol_ex(f, args, kwargs)
 
     update_wrapper(new_func, f)
     return new_func
 
 
-# TODO: improve return type
-def get_hints(v: Fn | type | Module) -> dict[str, Any]:
+def get_hints(v: Fn | type | Module) -> dict[str, Hint]:
     "Get a func/class/module's type-hints."
     return get_annotations(v, eval_str=True)
