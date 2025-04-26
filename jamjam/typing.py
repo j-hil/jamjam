@@ -2,24 +2,50 @@
 
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import (
+    Callable,
+    Iterable,
+    Iterator,
+    Mapping,
+    Sequence,
+)
 from functools import update_wrapper
 from inspect import get_annotations, signature
+from types import ModuleType
 from typing import (
+    Any,
     Concatenate,
     Never,
     Protocol,
     cast,
     get_overloads,
 )
+from typing_extensions import ParamSpec, TypeVar
 
-from jamjam._lib.typevars import K, P, R, T, V_co
+from jamjam._lib.typevars import K, P, R, T, T_co, V_co
 
-Fn = Callable[P, R]  #:
+# TODO: default seq & map type-vars too? set auto-variance?
+_DR = TypeVar("_DR", default=object)
+_DP = ParamSpec("_DP", default=...)
+
+Fn = Callable[_DP, _DR]  #:
 Map = Mapping[K, V_co]  #:
 Seq = Sequence[V_co]  #:
+Module = ModuleType  #:
 No = Never
-"Alias of ``Never``"
+"Alias of ``Never``."
+
+# Abbreviating these was *hard*. Iter = Iterator won as
+# Iterator is the base concept (tho not base class) and the
+# `iter` func really should return `Iter`.
+Iter = Iterator[T_co]  #:
+CanIter = Iterable[T_co]  #:
+
+_T1 = TypeVar("_T1")
+_T2 = TypeVar("_T2", default=_T1)
+
+Pair = tuple[_T1, _T2]
+"Type of 2-tuple, with 2nd type defaulting to 1st."
 MethodDef = Fn[Concatenate[T, P], R]
 "Parameterized type for method definitions."
 
@@ -58,9 +84,7 @@ def copy_type(v: T, /) -> Fn[[object], T]:
 
 
 def _overload_err(
-    f: Fn[..., object],
-    args: Seq[object],
-    kwargs: Map[str, object],
+    f: Fn, args: Seq[object], kwargs: Map[str, object]
 ) -> TypeError:
     name = f"{f.__module__}.{f.__qualname__}"
     msg = f"No overload of {name} for {args=}, {kwargs=}."
@@ -105,3 +129,9 @@ def use_overloads(f: Fn[[], None], /) -> Fn[..., object]:
 
     update_wrapper(new_func, f)
     return new_func
+
+
+# TODO: improve return type
+def get_hints(v: Fn | type | Module) -> dict[str, Any]:
+    "Get a func/class/module's type-hints."
+    return get_annotations(v, eval_str=True)

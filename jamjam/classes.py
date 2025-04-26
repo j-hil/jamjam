@@ -3,6 +3,8 @@
 from typing import ClassVar, Self, final
 from typing_extensions import TypeIs
 
+from jamjam._lib.typevars import T
+
 
 class Singleton:
     """One instance per (sub)class.
@@ -44,3 +46,8 @@ def mk_repr(v: object, *args: object, **kwds: object) -> str:
         *(f"{kwd}={kwarg}" for kwd, kwarg in kwds.items()),
     ])
     return f"{cls_name}({body})"
+
+
+def mk_subtype(name: str, base: type[T]) -> type[T]:
+    "Create 'empty' subtype using ``base`` as only parent."
+    return type(name, (base,), {})
