@@ -3,8 +3,7 @@ from __future__ import annotations
 import ctypes
 from functools import wraps
 from inspect import signature
-from types import UnionType
-from typing import Any, TypeVar, get_args
+from typing import Any, TypeVar
 
 from jamjam import c
 from jamjam._lib.typevars import P, R
@@ -13,21 +12,6 @@ from jamjam.typing import MethodDef, Seq
 D = TypeVar("D", bound=ctypes.CDLL)
 REQUIRED: Any = object()
 "Default for required params located after optional ones."
-
-
-def _extract(hint: UnionType | type[c.Data]) -> type[c.Data]:
-    if isinstance(hint, UnionType):
-        types = get_args(hint)
-        return next(
-            t for t in types if issubclass(t, c.Data)
-        )
-    if issubclass(hint, c.BaseData):
-        return hint
-    msg = (
-        "Expected a type-hint of to be either a c-type "
-        f"or a union including a c-type. Got {hint=}."
-    )
-    raise TypeError(msg)
 
 
 def _errcheck(
@@ -60,7 +44,7 @@ def imp_method(f: MethodDef[D, P, R]) -> MethodDef[D, P, R]:
         method = getattr(self, method_name)
         sig = signature(method, eval_str=True)
         params = sig.parameters.values()
-        argtypes = [_extract(p.annotation) for p in params]
+        argtypes = [c.extract(p.annotation) for p in params]
 
         cfunc.argtypes = argtypes
         cfunc.restype = sig.return_annotation
