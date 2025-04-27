@@ -144,12 +144,13 @@ lint.ignore = [
     "D415",    # missing-terminal-punctuation
     "DOC201",  # docstring-missing-returns
     "DOC501",  # docstring-missing-exception
+    "E741",    # ambiguous-variable-name
     "FIX002",  # line-contains-todo
     "ISC001",  # single-line-implicit-string-concatenation
     "PLC0105", # type-name-incorrect-variance
     "PLR2004", # magic-value-comparison
-    "PYI025",  # unaliased-collections-abc-set-import
     "PT013",   # pytest-incorrect-pytest-import
+    "PYI025",  # unaliased-collections-abc-set-import
     "TC001",   # typing-only-first-party-import
     "TC002",   # typing-only-third-party-import
     "TC003",   # typing-only-standard-library-import

@@ -11,8 +11,9 @@ from collections.abc import (
 )
 from functools import update_wrapper
 from inspect import get_annotations, signature
-from types import ModuleType, UnionType
+from types import EllipsisType, ModuleType, UnionType
 from typing import (
+    Any,
     Concatenate,
     Never,
     Protocol,
@@ -23,13 +24,11 @@ from typing_extensions import ParamSpec, TypeVar
 
 from jamjam._lib.typevars import K, P, R, T
 
-_DR = TypeVar("_DR", default=object)
 _DP = ParamSpec("_DP", default=...)
+_DV = TypeVar("_DV", default=object)
 _DV_co = TypeVar("_DV_co", default=object, covariant=True)
-_T1 = TypeVar("_T1")
-_T2 = TypeVar("_T2", default=_T1)
 
-Fn = Callable[_DP, _DR]  #:
+Fn = Callable[_DP, _DV]  #:
 Map = Mapping[K, _DV_co]  #:
 Seq = Sequence[_DV_co]  #:
 Module = ModuleType
@@ -49,8 +48,18 @@ NOTE: isn't complete & may be impossible to do so.
 Iter = Iterator[_DV_co]  #:
 CanIter = Iterable[_DV_co]  #:
 
-Pair = tuple[_T1, _T2]
-"Type of 2-tuple, with 2nd type defaulting to 1st."
+# EllipsisType is bad since it suggests type of `type(...)`
+# but we can't use Ellipsis since that's a built-in alias
+# for '...' itself.
+Dots = EllipsisType
+"Type of singleton/literal ``...``."
+
+Two = tuple[_DV, _DV]
+"Type of homogenous 2-tuple."
+Three = tuple[_DV, _DV, _DV]
+"Type of homogenous 3-tuple."
+StrDict = dict[str, _DV]
+"Type of a homogenous dictionary with string keys."
 MethodDef = Fn[Concatenate[T, P], R]
 "Parameterized type for method definitions."
 
@@ -63,6 +72,9 @@ class ParamsCopier(Protocol[P]):
 
 def copy_params(f: Fn[P, object], /) -> ParamsCopier[P]:
     """Transfer static signature of one func to another.
+
+    NOTE: does not work with overloaded functions - might
+    work with Callable protocol with overloaded ``__call__``?
 
     Does not enforce new signature. Best for tweaking output
     of functions without having to re-expose every argument.
@@ -88,47 +100,48 @@ def copy_type(v: T, /) -> Fn[[object], T]:
     return lambda x: cast(T, x)
 
 
-def _ol_ex(f: Fn, args: Seq, kwds: Map[str]) -> TypeError:
+def _match_overload(
+    f: Fn, args: tuple[object, ...], kwds: StrDict
+) -> tuple[Fn, tuple, StrDict[Any]]:
+    # TODO: add runtime type-checking?
+
+    for func_overload in get_overloads(f):
+        s = signature(func_overload)
+        try:
+            bound = s.bind(*args, **kwds)
+        except TypeError:
+            continue
+        # TODO: don't we need to call apply_defaults?
+        # Add test case.
+        return func_overload, bound.args, bound.kwargs
     name = f"{f.__module__}.{f.__qualname__}"
     msg = f"No overload of {name} for {args=}, {kwds=}."
-    return TypeError(msg)
+    raise TypeError(msg)
 
 
 def check_overloads(f: Fn[P, R], /) -> Fn[P, R]:
     "Check calls to ``f`` match an overload signatures."
-    # TODO: add runtime type-checking?
 
-    def new_func(*args: P.args, **kwargs: P.kwargs) -> R:
-        for func_overload in get_overloads(f):
-            s = signature(func_overload)
-            try:
-                bound_args = s.bind(*args, **kwargs)
-            except TypeError:
-                continue
-            return f(*bound_args.args, **bound_args.kwargs)
-        raise _ol_ex(f, args, kwargs)
+    def new_func(*args: P.args, **kwds: P.kwargs) -> R:
+        _, args, kwds = _match_overload(f, args, kwds)
+        return f(*args, **kwds)
 
     update_wrapper(new_func, f)
     return new_func
 
 
-def use_overloads(f: Fn[[], None], /) -> Fn:
+def use_overloads(
+    f: Fn[[], None] | MethodDef[No, [], None], /
+) -> Fn:
     """Use ``@overload`` bodies to implement of ``f``.
 
     No (runtime) types checked, so signatures should not
     overlap even after stripping type hints.
     """
-    # TODO: add runtime type-checking?
 
-    def new_func(*args: object, **kwargs: object) -> object:
-        for func_overload in get_overloads(f):
-            s = signature(func_overload)
-            try:
-                bound = s.bind(*args, **kwargs)
-            except TypeError:
-                continue
-            return func_overload(*bound.args, **bound.kwargs)
-        raise _ol_ex(f, args, kwargs)
+    def new_func(*args: object, **kwds: object) -> object:
+        ofunc, args, kwds = _match_overload(f, args, kwds)
+        return ofunc(args, kwds)
 
     update_wrapper(new_func, f)
     return new_func
