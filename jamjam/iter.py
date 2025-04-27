@@ -8,15 +8,21 @@ https://more-itertools.readthedocs.io/en/stable/index.html
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Set
 from itertools import groupby
 
 from jamjam._lib.typevars import K, R, T
-from jamjam.typing import CanIter, Fn, Iter
-
-_TwoIt = tuple[Iter[T], Iter[T]]
+from jamjam.typing import CanIter, Fn, Iter, Pair
 
 
-def split(it: CanIter[T], pred: Fn[[T]] = bool) -> _TwoIt[T]:
+def ordered_set(iterable: CanIter[T]) -> Set[T]:
+    "Cheap implementation of an ordered set."
+    return dict.fromkeys(iterable, 0).keys()
+
+
+def split(
+    it: CanIter[T], pred: Fn[[T]] = bool
+) -> Pair[Iter[T]]:
     "Split ``it`` in two based on ``pred``."
     # similar to `more_itertools.partition`
 
