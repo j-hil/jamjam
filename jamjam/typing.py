@@ -112,7 +112,7 @@ def check_overloads(f: Fn[P, R], /) -> Fn[P, R]:
     return new_func
 
 
-def use_overloads(f: Fn[[], None], /) -> Fn[..., object]:
+def use_overloads(f: Fn[[], None], /) -> Fn:
     """Use ``@overload`` bodies to implement of ``f``.
 
     No (runtime) types checked, so signatures should not

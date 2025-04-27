@@ -38,37 +38,82 @@ dev = [
 
 
 [tool.mypy]
-# see: https://mypy.readthedocs.io/en/stable/config_file.html
-# TODO: This config can definately be simplified. Move stuff into error code lists._scripts
-# Rational should be added for each rule's enabling/disabling.
-allow_redefinition = true
+# https://mypy.readthedocs.io/en/stable/config_file.html
+#
+# Config is annoying as there're many ways to enable options.
+# (1) Individual Options
+# (2) Error Codes:
+# (3) Umbrella flags like 'strict' and 'extra-checks'
+#
+# Prioritize (1) over (2) where possible, never use (3).
+# Layout of options matches webpage.
+#
+# https://mypy.readthedocs.io/en/stable/config_file.html#platform-configuration
+always_true = []
+always_false = []
+#
+# https://mypy.readthedocs.io/en/stable/config_file.html#disallow-dynamic-typing
+disallow_any_unimported = true
+disallow_any_expr = false
+disallow_any_decorated = false
+disallow_any_explicit = false
+disallow_any_generics = false
+disallow_subclassing_any = true
+#
+# https://mypy.readthedocs.io/en/stable/config_file.html#untyped-definitions-and-calls
+disallow_untyped_calls = true
+untyped_calls_exclude = []
+disallow_untyped_defs = true
 disallow_incomplete_defs = true
+check_untyped_defs = true
 disallow_untyped_decorators = true
+#
+# https://mypy.readthedocs.io/en/stable/config_file.html#configuring-warnings
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_return_any = false
+warn_unreachable = true
+#
+# https://mypy.readthedocs.io/en/stable/config_file.html#miscellaneous-strictness-flags
+allow_redefinition = true
+local_partial_types = false
+# enable_error_code = ...  # moved below.
 extra_checks = true
-implicit_reexport = true
+implicit_reexport = false
+strict_equality = false
+strict_bytes = true
+#
+# https://mypy.readthedocs.io/en/stable/config_file.html#configuring-error-messages
 show_column_numbers = true
 show_error_code_links = true
-show_error_codes = true
-strict_equality = true
-warn_redundant_casts = true
+#
+# https://mypy.readthedocs.io/en/stable/config_file.html#miscellaneous
 warn_unused_configs = true
-warn_unused_ignores = true
+#
+# https://mypy.readthedocs.io/en/stable/error_code_list2.html
+# Commented codes are intentionally off and/or set elsewhere.
 enable_error_code = [
-    "ignore-without-code",
-    "mutable-override",
-    "narrowed-type-not-subtype",
-    "possibly-undefined",
-    "redundant-cast",
-    "redundant-expr",
+    # "type-arg",            # see disallow_any_generics
+    # "no-untyped-def",      # see disallow_untyped_defs
+    # "redundant-cast",      # see warn_redundant_casts
     "redundant-self",
+    # "comparison-overlap",  # see strict_equality
+    # "no-untyped-call",     # see disallow_untyped_calls
+    # "no-any-return",       # see warn_return_any
+    # "no-any-unimported",   # see disallow_any_unimported
+    # "unreachable",         # see warn_unreachable
+    "deprecated",
+    "redundant-expr",
+    "possibly-undefined",
     "truthy-bool",
     "truthy-iterable",
-    "type-arg",
-    "unimported-reveal",
+    "ignore-without-code",
+    # "explicit-override",
     "unused-awaitable",
-]
-disable_error_code = [
-    "comparison-overlap", # perfectly type-safe
+    # "unused-ignore",       # see warn_unused_ignores
+    "mutable-override",
+    "unimported-reveal",
+    # "explicit-any",        # see disallow_any_explicit
 ]
 
 
