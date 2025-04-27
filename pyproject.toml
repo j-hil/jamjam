@@ -103,6 +103,7 @@ lint.ignore = [
     "ISC001",  # single-line-implicit-string-concatenation
     "PLC0105", # type-name-incorrect-variance
     "PLR2004", # magic-value-comparison
+    "PYI025",  # unaliased-collections-abc-set-import
     "PT013",   # pytest-incorrect-pytest-import
     "TC001",   # typing-only-first-party-import
     "TC002",   # typing-only-third-party-import
