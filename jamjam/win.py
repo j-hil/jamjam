@@ -1,6 +1,6 @@
 "Access to the windows API."
 
-# ruff: noqa: N802, N803
+# ruff: noqa: N802, N803, N815
 from __future__ import annotations
 
 import ctypes
@@ -10,6 +10,7 @@ from ctypes.wintypes import (
     INT,
     LONG,
     LPCWSTR,
+    SHORT,
     UINT,
     ULONG,
     WCHAR,
@@ -31,6 +32,46 @@ PULong = c.Pointer[ULONG]
 WChar = str | WCHAR
 
 
+class MouseInput(c.Struct):
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-mouseinput/"
+
+    dx: Long
+    dy: Long
+    mouseData: DWord | None = None
+    dwFlags: DWord | None = None
+    time: DWord | None = None
+    dwExtraInfo: PULong | None = None
+
+
+class KeybdInput(c.Struct):
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-keybdinput/"
+
+    wVk: Word
+    wScan: Word | None = None
+    dwFlags: DWord | None = None
+    time: DWord | None = None
+    dwExtraInfo: PULong | None = None
+
+
+class HardwareInput(c.Struct):
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-hardwareinput/"
+
+    uMsg: DWord
+    wParamL: Word
+    wParamH: Word
+
+
+class Input(c.Struct):
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-input/"
+
+    class _U(c.Union): ...
+
+    type: DWord
+    mi: MouseInput = c.anonymous(_U)
+    ki: KeybdInput = c.anonymous(_U)
+    hi: HardwareInput = c.anonymous(_U)
+
+
 class User32(ctypes.WinDLL):
     "Type of ``user32``."
 
@@ -46,6 +87,21 @@ class User32(ctypes.WinDLL):
         uType: UInt = REQUIRED,
     ) -> INT:
         "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-messageboxw/"
+        raise NotImplementedError
+
+    @imp_method
+    def SendInput(
+        self,
+        cInputs: UInt,
+        pInputs: c.Array[Input],
+        cbSize: Int,
+    ) -> UINT:
+        "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-sendinput/"
+        raise NotImplementedError
+
+    @imp_method
+    def VkKeyScanW(self, ch: WChar) -> SHORT:
+        "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-vkkeyscanw/"
         raise NotImplementedError
 
 
@@ -68,11 +124,3 @@ class Mb(IntEnum):
     ICON_QUESTION = 0x20
     ICON_WARNING = 0x30
     ICON_INFO = 0x40
-
-
-if __name__ == "__main__":
-    user32.MessageBoxW(
-        lpCaption="My Test",
-        lpText="Hello! welcome to my first text box.",
-        uType=Mb.OK_CANCEL | Mb.ICON_INFO,
-    )
