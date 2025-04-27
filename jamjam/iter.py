@@ -10,9 +10,18 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Set
 from itertools import groupby
+from typing import overload
 
 from jamjam._lib.typevars import K, R, T
-from jamjam.typing import CanIter, Fn, Iter, Pair
+from jamjam.typing import (
+    CanIter,
+    Dots,
+    Fn,
+    Iter,
+    Three,
+    Two,
+    use_overloads,
+)
 
 
 def ordered_set(iterable: CanIter[T]) -> Set[T]:
@@ -22,7 +31,7 @@ def ordered_set(iterable: CanIter[T]) -> Set[T]:
 
 def split(
     it: CanIter[T], pred: Fn[[T]] = bool
-) -> Pair[Iter[T]]:
+) -> Two[Iter[T]]:
     "Split ``it`` in two based on ``pred``."
     # similar to `more_itertools.partition`
 
@@ -59,3 +68,72 @@ def gather(
     # useful over plain dict(groupby(...)) as can return
     # dict[X, list] easily as oppose to dict[X, Iter]
     return {k: into(v) for k, v in groupby(it, by)}
+
+
+_Pattern3 = tuple[int, Dots, int]
+_Pattern4 = tuple[int, int, Dots, int]
+_Pattern = _Pattern3 | _Pattern4
+
+
+class _IntegerIntervalFactory:
+    @staticmethod
+    def _parse_pattern(pattern: _Pattern) -> Three[int]:
+        if len(pattern) == 4:
+            start, second, _, end = pattern
+            return start, end, second - start
+        start, _, end = pattern
+        return start, end, 1
+
+    def __getitem__(self, pattern: _Pattern) -> range:
+        start, end, sep = self._parse_pattern(pattern)
+        return range(start, end + 1, sep)
+
+    # Overloads only needed as unpack of union unsupported:
+    # https://discuss.python.org/t/unpacking-a-union-of-tuples/52194
+    @overload
+    def __call__(self, *pattern: *_Pattern3) -> range: ...
+    @overload
+    def __call__(self, *pattern: *_Pattern4) -> range: ...
+    def __call__(self, *pattern: *tuple) -> range:
+        start, end, sep = self._parse_pattern(pattern)
+        return range(start + sep, end, sep)
+
+
+ii = _IntegerIntervalFactory()
+"""Integer interval creation - alternate to ``range``.
+
+Use ``ii(*pat)`` for exclusive interval, and ``ii[*pat]`` for
+inclusive interval. ``pat`` can be ``(start, ..., end)`` for
+increments of 1, or ``(start, second, ..., end)`` for
+alternate step sizes.::
+
+    r1 = ii(4, 8, ..., 20)
+    assert list(r1) == [8, 12, 16]
+
+    r2 = ii(4, ..., 8)
+    assert list(r2) == [5, 6, 7]
+
+    r3 = ii[4, 8, ..., 20]
+    assert list(r3) == [4, 8, 12, 16, 20]
+
+    r4 = ii[4, ..., 8]
+    assert list(r4) == [4, 5, 6, 7, 8]
+
+NOTE: This isn't exactly better than just using ``range``
+directly but it was fun to write.
+"""
+
+
+@overload
+def irange(start: int, stop: int, step: int = 1, /) -> range:
+    return range(start, stop + 1, step)
+
+
+@overload
+def irange(stop: int, /) -> range:
+    return range(stop + 1)
+
+
+@use_overloads
+def irange() -> None:
+    "Inclusive range."

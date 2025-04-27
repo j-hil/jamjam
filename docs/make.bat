@@ -32,4 +32,8 @@ goto end
 %SPHINXBUILD% -M help %SOURCEDIR% %BUILDDIR% %SPHINXOPTS% %O%
 
 :end
+
+echo Opening _build/html/index.html with default HTML app.
+start "" "_build/html/index.html"
+
 popd
