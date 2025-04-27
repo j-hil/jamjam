@@ -25,7 +25,7 @@ def _errcheck(
     if not result:
         raise ctypes.WinError()
     if not isinstance(result, c.Data):
-        if not issubclass(rt, c.SimpleData):
+        if not issubclass(rt, c.Simple):
             msg = f"Can't coerce {result} into ctype {rt}."
             raise TypeError(msg)
         result = rt(result)

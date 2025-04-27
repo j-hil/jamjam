@@ -5,7 +5,6 @@ from __future__ import annotations
 
 import _ctypes
 import ctypes
-from ctypes import CFUNCTYPE, Union
 from dataclasses import dataclass
 from itertools import groupby
 from textwrap import indent
@@ -16,30 +15,34 @@ from typing import (
     TypeVar,
     dataclass_transform,
     get_args,
+    get_origin,
 )
 
-from jamjam.classes import mk_repr, mk_subtype
+from jamjam.classes import mk_repr
 from jamjam.typing import Hint, get_hints
 
 _, _SimpleCData, _CData, _ = ctypes.c_int.mro()
 _CArgObject = type(ctypes.byref(ctypes.c_int()))
-_FuncPtr = CFUNCTYPE(None).mro()[1]
+_FuncPtr = ctypes.CFUNCTYPE(None).mro()[1]
 
 if TYPE_CHECKING:
     BaseData = ctypes._CData
-    SimpleData = ctypes._SimpleCData
+    Simple = ctypes._SimpleCData
     ArgObj = ctypes._CArgObject
     FuncPtr = _ctypes.CFuncPtr
     NamedFuncPtr = ctypes._NamedFuncPointer
 else:
     BaseData = _CData
-    SimpleData = _SimpleCData
+    Simple = _SimpleCData
     ArgObj = _CArgObject
     FuncPtr = _FuncPtr
     NamedFuncPtr = Any  # can only be used as a type-hint
 
 _D = TypeVar("_D", bound=BaseData)
-_Pointer = ctypes._Pointer
+Array = ctypes.Array
+"The array ctype."
+Union = ctypes.Union
+"The union ctype."
 
 
 class _PointerHint(type):
@@ -50,25 +53,17 @@ class _PointerHint(type):
         return ctypes.pointer(data)
 
     def __instancecheck__(cls, instance: object) -> bool:
-        return isinstance(instance, _Pointer)
+        return isinstance(instance, ctypes._Pointer)
 
     def __subclasscheck__(cls, subclass: type) -> bool:
-        return issubclass(subclass, _Pointer)
+        return issubclass(subclass, ctypes._Pointer)
 
 
 if TYPE_CHECKING:
     Pointer = ctypes._Pointer
 else:
     Pointer = _PointerHint("Pointer", (), {})
-Data = (
-    SimpleData
-    | Pointer
-    | FuncPtr
-    | ctypes.Union
-    | ctypes.Structure
-    | ctypes.Array
-)
-"All basic BaseData subclasses."
+
 Int = int | ctypes.c_int
 Str = str | ctypes.c_wchar_p
 
@@ -78,8 +73,9 @@ def extract(hint: Hint) -> type[Data]:
     if isinstance(hint, UnionType):
         types = get_args(hint)
         return next(t for t in types if issubclass(t, Data))
-    if issubclass(hint, Data):
-        return hint
+    cls: type = get_origin(hint) or hint
+    if issubclass(cls, Data):
+        return cls
     msg = f"Expected union including a ctype. Got {hint=}"
     raise TypeError(msg)
 
@@ -95,7 +91,7 @@ class Field:
     name: str
     hint: Hint
     ctype: type[Data]
-    uid: _UnionId | None
+    utype: type[Union] | None
 
 
 if TYPE_CHECKING:
@@ -106,45 +102,56 @@ else:
 
 class _NewStructMeta(_PyCStructType, type):
     def _mk_field(cls, attr: str, hint: Hint) -> Field:
-        uid = getattr(cls, attr, None)
-        if not isinstance(uid, _UnionId | None):
-            msg = (
-                "Field must be unset, `None` or assigned"
-                f"a union-id. Instead got {uid}."
-            )
-            raise TypeError(msg)
-        return Field(attr, hint, extract(hint), uid)
+        ut = getattr(cls, attr, None)
+        if ut is None or issubclass(ut, Union):
+            return Field(attr, hint, extract(hint), ut)
+        msg = (
+            "Field must be unset, `None` or assigned"
+            f"with `c.anonymous`. Instead got {ut}."
+        )
+        raise TypeError(msg)
 
     def __init__(cls, *args: object, **kwds: object) -> None:
         super().__init__(*args, **kwds)
 
-        dc_fields = {
+        fields = {
             attr: cls._mk_field(attr, hint)
             for attr, hint in get_hints(cls).items()
         }
-        groups = groupby(dc_fields.values(), lambda f: f.uid)
+        groups = groupby(fields.values(), lambda f: f.utype)
 
-        anonymous: list[str] = []
+        _anonymous_: list[str] = []
         ctype_fields: list[tuple[str, type[Data]]] = []
-        for uid, group in groups:
+        for utype, group in groups:
             u_fields = [(f.name, f.ctype) for f in group]
-            if uid is None:
+            if utype is None:
                 ctype_fields.extend(u_fields)
                 continue
-            ut = mk_subtype(f"__GeneratedUnion{uid}", Union)
-            ut._fields_ = u_fields
-            uf = f"__generated_field{uid}"
-            ctype_fields.append((uf, ut))
-            anonymous.append(uf)
+            utype._fields_ = u_fields
+            uf = f"__anonymous_{utype.__name__}"
+            ctype_fields.append((uf, utype))
+            _anonymous_.append(uf)
 
-        cls._anonymous_ = anonymous
+        cls._anonymous_ = _anonymous_
         cls._fields_ = ctype_fields
-        cls.__dataclass_fields__ = dc_fields
+        cls.__dataclass_fields__ = fields
 
 
-@dataclass_transform(eq_default=False)
+# must return Any as assigned to typed fields
+def anonymous(utype: type[Union]) -> Any:
+    "Mark field as union member and anonymously accessible."
+    return utype
+
+
+@dataclass_transform(eq_default=False, kw_only_default=True)
 class Struct(ctypes.Structure, metaclass=_NewStructMeta):
     "Create c-structs with dataclass like syntax"
+
+    # TODO: anonymous union safety features?
+    # 1. when calling init validate that 1 union arg set
+    # 2. when accessing member check if it was one set in
+    # init, otherwise error. else this can just be a system
+    # error which is obtuse.
 
     @classmethod
     def size(cls) -> int:
@@ -180,3 +187,11 @@ class Struct(ctypes.Structure, metaclass=_NewStructMeta):
 
         body = "\n".join(parts)
         return f"{cls_name}(\n{body}\n)"
+
+
+Data = Simple | Pointer | FuncPtr | Union | Struct | Array
+"""All BaseData subclasses.
+
+Where relevant the ``jamjam.c`` class has replaced
+the relevant ``ctypes`` class. This may be a mistake.
+"""
