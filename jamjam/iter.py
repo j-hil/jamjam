@@ -13,6 +13,18 @@ from itertools import groupby
 from jamjam._lib.typevars import K, R, T
 from jamjam.typing import CanIter, Fn, Iter
 
+from collections.abc import Callable, Iterable
+from collections.abc import Set as AbstractSet
+from itertools import groupby
+from typing import TypeVar
+
+_VT = TypeVar("_VT")
+_KT = TypeVar("_KT")
+
+
+def ordered_set(iterable: Iterable[_KT]) -> AbstractSet[_KT]:
+    return dict.fromkeys(iterable, 0).keys()
+
 _TwoIt = tuple[Iter[T], Iter[T]]
 
 

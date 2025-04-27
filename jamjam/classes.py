@@ -1,9 +1,96 @@
 """Creation of custom classes."""
 
-from typing import ClassVar, Self, final
+from collections.abc import Iterator
+from enum import auto
+from typing import (
+    ClassVar,
+    Protocol,
+    Self,
+    TypeVar,
+    final,
+    overload,
+)
 from typing_extensions import TypeIs
 
 from jamjam._lib.typevars import T
+
+O_con = TypeVar("O_con", contravariant=True)
+OT = TypeVar("OT", bound=type[O_con])
+Ob = object
+
+
+# TODO: all of this.
+class CompleteDescriptor(Protocol[O_con]):
+    def __set_name__(
+        self, owner: type[O_con], name: str, /
+    ) -> None:
+        return
+
+    @overload
+    def __get__(
+        self, v: None, owner: type[O_con] | None = None, /
+    ) -> Ob: ...
+    @overload
+    def __get__(
+        self, v: O_con, vt: type[O_con] | None = None, /
+    ) -> Ob: ...
+
+    def __set__(self, v: O_con, value: Ob, /) -> None:
+        msg = f"Can't set member {self} of object {v}"
+        raise AttributeError(msg)
+
+    def __delete__(self, obj: O_con, /) -> None:
+        return
+
+
+@overload
+def auto_batch(n: int, /) -> Iterator[auto]: ...
+@overload
+def auto_batch(
+    arg0: int, arg1: int, /, *args: int
+) -> Iterator[Iterator[auto]]: ...
+
+
+def auto_batch(
+    n: int, /, *args: int
+) -> Iterator[Iterator[auto]] | Iterator[auto]:
+    """Assign many enum members with ``auto()`` at once.
+
+    For example::
+
+        class Value(Enum):
+            value: int  # optionally re-declare for type-checkers
+            A, B, C = auto_batch(3)
+
+    And multiple lines of values::
+
+        class Alphabet(StrEnum):
+            value: str
+            (
+                (
+                    A,
+                    B,
+                    C,
+                    D,
+                    E,
+                    F,
+                    G,
+                    H,
+                    I,
+                    J,
+                    K,
+                    L,
+                    M
+                ),
+                (N, 0, P, Q, R, S, T, U, V, W, X, Y, Z),
+            ) = auto_batch(16, 10)
+
+    For simple integer members using ``range`` may be preferred.
+    """
+    if not args:
+        return (auto() for _ in range(n))
+    args = (n, *args)
+    return ((auto() for _ in range(n)) for n in args)
 
 
 class Singleton:

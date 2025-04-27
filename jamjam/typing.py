@@ -1,7 +1,8 @@
-"""Extensions to the typing library."""
+"""More typing extensions: 'I will square this circle' - ⏺️."""
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import (
     Callable,
     Iterable,
@@ -13,21 +14,30 @@ from functools import update_wrapper
 from inspect import get_annotations, signature
 from types import ModuleType, UnionType
 from typing import (
+    Any,
     Concatenate,
+    Generic,
+    Literal,
     Never,
     Protocol,
+    Self,
     cast,
+    get_args,
     get_overloads,
 )
-from typing_extensions import ParamSpec, TypeVar
+from typing_extensions import TypeIs, ParamSpec, TypeVar
 
-from jamjam._lib.typevars import K, P, R, T
+from jamjam._lib.typevars import F, K, P, R, T
 
 _DR = TypeVar("_DR", default=object)
 _DP = ParamSpec("_DP", default=...)
 _DV_co = TypeVar("_DV_co", default=object, covariant=True)
 _T1 = TypeVar("_T1")
 _T2 = TypeVar("_T2", default=_T1)
+
+LiteralType = type(Literal[1])
+ProtocolMeta = type(Protocol)
+
 
 Fn = Callable[_DP, _DR]  #:
 Map = Mapping[K, _DV_co]  #:
@@ -137,3 +147,92 @@ def use_overloads(f: Fn[[], None], /) -> Fn[..., object]:
 def get_hints(v: Fn | type | Module) -> dict[str, Hint]:
     "Get a func/class/module's type-hints."
     return get_annotations(v, eval_str=True)
+
+
+def copy_method_signature(
+    typed: Callable[Concatenate[Any, P], object],
+) -> Callable[[Callable[..., R]], Callable[P, R]]:
+    _ = typed  # TODO: extract the relevant info from `typed` at runtime
+    return lambda x: x
+
+
+class _Delete:
+    """Descriptor which deletes itself as soon as it's assigned."""
+
+    def __init__(self, _: object) -> None: ...
+
+    def __set_name__(self, v: type, name: str) -> None:
+        delattr(v, name)
+
+
+def typing_only(func: F) -> F:
+    """Make a method only available to a type-checker."""
+    return _Delete(func)  # type: ignore[return-value]  # obvious lie
+
+
+# def _add_repr(cls: _HintTypeT) -> _HintTypeT:
+#     def __repr__(self: _HintTypeT) -> str:
+#         # return f"{self.__qualname__}[{self._hint}]"
+#         return "100"
+#     # object.__setattr__(cls.__class__, "__repr__", __repr__)
+#     # cls.__class__.__repr__ = (__repr__)
+#     return cls
+_missing: Any = object()
+
+
+class Hint(Generic[T]):
+    """Raise a type hints out of annotations & into runtime code.
+
+    Through this class any hint can we manipulated at runtime inside of
+    class methods, *without* requiring the loss of it's information to the
+    type-checker.
+    """
+
+    # classvar, but can't use ClassVar[...] due to type var
+    _hint: type[T] = _missing
+
+    @classmethod
+    def get_hint(cls) -> type[T]:
+        # provides access to type-hint without type-checkers complaining
+        # and providing a better message when hint is not set.
+        hint = cls._hint
+        if hint is _missing:
+            msg = f"{cls.__name__} is un-parameterized so has no hint."
+            raise TypeError(msg)
+        return cls._hint
+
+    @abstractmethod
+    def _do_not_instantiate_(self) -> Never: ...
+
+    def __init_subclass__(
+        cls, *, _hint: type[T] = _missing, **kwargs: object
+    ) -> None:
+        cls._hint = _hint
+        return super().__init_subclass__(**kwargs)
+
+    def __class_getitem__(cls, hint: Any) -> type[Self]:
+        if isinstance(hint, tuple):
+            msg = "Only one type parameter allowed."
+            raise TypeError(msg)
+        return type("HintAlias", (cls,), {}, _hint=hint)
+
+
+class Check(Hint[T]):
+    """Generalized isinstance checks & similar."""
+
+    @classmethod
+    def has_instance(cls, obj: object) -> TypeIs[T]:
+        hint = cls._hint
+        if isinstance(hint, type | UnionType | ProtocolMeta):
+            return isinstance(obj, hint)
+
+        # TODO: i don't think this works properly - probs just is isinstance(..., func)
+        # probs need to switch to get_origin etc
+        if isinstance(hint, LiteralType):
+            return obj in get_args(hint)
+        msg = f"Type-hint {hint} is not supported."
+        raise NotImplementedError(msg)
+
+
+def maybe(_: type[T], /) -> T | None:
+    return None

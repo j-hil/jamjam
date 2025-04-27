@@ -1,13 +1,21 @@
 import inspect
 from collections.abc import Callable
-from typing import Any, assert_type, overload
+from typing import (
+    Any,
+    Literal,
+    TypeAlias,
+    assert_type,
+    overload,
+)
 
 from pytest import raises
 
 from jamjam.typing import (
+    Check,
     Seq,
     copy_params,
     copy_type,
+    typing_only,
     use_overloads,
 )
 
@@ -59,3 +67,29 @@ def test_use_overloads() -> None:
 
     with raises(TypeError):
         f(z="a", y="b")  # type: ignore[call-overload]
+
+
+def test_hint_has_instance() -> None:
+    Option: TypeAlias = Literal[1, 2, 3]
+
+    x: Literal[Option, 4]
+    for x in (1, 2, 3, 4):
+        if Check[Option].has_instance(x):
+            assert_type(x, Option)
+            assert x in (1, 2, 3)
+        else:
+            assert_type(x, Literal[4])
+            assert x == 4
+
+
+def test_typing_only() -> None:
+    class B:
+        def f(self) -> int:
+            return 1
+
+    class A(B):
+        @typing_only
+        def f(self) -> int:
+            raise NotImplementedError
+
+    assert A().f() == 1

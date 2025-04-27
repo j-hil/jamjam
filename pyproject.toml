@@ -39,36 +39,38 @@ dev = [
 
 [tool.mypy]
 # see: https://mypy.readthedocs.io/en/stable/config_file.html
-# TODO: This config can definately be simplified. Move stuff into error code lists._scripts
-# Rational should be added for each rule's enabling/disabling.
-allow_redefinition = true
-disallow_incomplete_defs = true
-disallow_untyped_decorators = true
-extra_checks = true
-implicit_reexport = true
 show_column_numbers = true
 show_error_code_links = true
-show_error_codes = true
-strict_equality = true
-warn_redundant_casts = true
 warn_unused_configs = true
-warn_unused_ignores = true
+#
+allow_redefinition = false # too inconsistent
+disallow_untyped_decorators = true
+extra_checks = true # has replaced strict_concatenate? https://github.com/python/mypy/issues/16189
+implicit_reexport = false
+#
 enable_error_code = [
     "ignore-without-code",
     "mutable-override",
     "narrowed-type-not-subtype",
+    "no-any-return",             # aka warn-return-any
+    "no-any-unimported",         # aka disallow-any-unimported
+    "no-untyped-call",           # aka disallow-untyped-calls
+    "no-untyped-def",            # aka disallow-untyped-defs
     "possibly-undefined",
-    "redundant-cast",
+    "redundant-cast",            # aka warn-redundant-casts
     "redundant-expr",
     "redundant-self",
     "truthy-bool",
     "truthy-iterable",
-    "type-arg",
+    "type-arg",                  # aka disallow-any-generics
     "unimported-reveal",
+    "unreachable",               # aka warn-unreachable
     "unused-awaitable",
+    "unused-ignore",             # aka warn-unused-ignores
 ]
 disable_error_code = [
-    "comparison-overlap", # perfectly type-safe
+    "explicit-override",  # type-safe and doesn't provide enough value
+    "comparison-overlap", # aka strict-equality; often is type-safe
 ]
 
 
