@@ -80,10 +80,6 @@ def extract(hint: Hint) -> type[Data]:
     raise TypeError(msg)
 
 
-# TODO: c.Union stuff still tentative - need use/test
-class _UnionId(int): ...
-
-
 @dataclass(frozen=True, slots=True)
 class Field:
     "Metadata for a ``c.Struct`` field."
