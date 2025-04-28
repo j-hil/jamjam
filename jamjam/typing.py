@@ -141,7 +141,7 @@ def use_overloads(
 
     def new_func(*args: object, **kwds: object) -> object:
         ofunc, args, kwds = _match_overload(f, args, kwds)
-        return ofunc(args, kwds)
+        return ofunc(*args, **kwds)
 
     update_wrapper(new_func, f)
     return new_func

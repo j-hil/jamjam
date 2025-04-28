@@ -1,5 +1,12 @@
 from jamjam._tests.conftest import manual_only
-from jamjam.win import Input, KeybdInput, Mb, Vk, user32
+from jamjam.win import (
+    Input,
+    InputType,
+    KeybdInput,
+    Mb,
+    Vk,
+    user32,
+)
 
 
 @manual_only
@@ -16,6 +23,6 @@ def test_message_box() -> None:
 def test_send_input() -> None:
     "Should type out 'a' where cursor is."
     press_a = Input(
-        type=Input.KEYBOARD, ki=KeybdInput(wVk=Vk.A)
+        type=InputType.KEYBOARD, ki=KeybdInput(wVk=Vk.A)
     )
     user32.SendInput(1, (Input * 1)(press_a), Input.size())
