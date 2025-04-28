@@ -1,9 +1,11 @@
 """Creation of custom classes."""
 
+from enum import auto
 from typing import ClassVar, Self, final
 from typing_extensions import TypeIs
 
 from jamjam._lib.typevars import T
+from jamjam.typing import Iter
 
 
 class Singleton:
@@ -51,3 +53,8 @@ def mk_repr(v: object, *args: object, **kwds: object) -> str:
 def mk_subtype(name: str, base: type[T]) -> type[T]:
     "Create 'empty' subtype using ``base`` as only parent."
     return type(name, (base,), {})
+
+
+def autos(n: int, /) -> Iter[auto]:
+    "Assign many enum members with ``auto()`` at once."
+    return (auto() for _ in range(n))

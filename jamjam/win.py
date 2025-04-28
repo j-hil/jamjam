@@ -16,10 +16,11 @@ from ctypes.wintypes import (
     WCHAR,
     WORD,
 )
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 
 from jamjam import c
 from jamjam._lib.win import REQUIRED, imp_method
+from jamjam.classes import autos
 from jamjam.iter import irange
 
 Hwnd = int | HWND
@@ -115,6 +116,32 @@ class InputType:
 
     MOUSE, KEYBOARD, HARDWARE = 0, 1, 2
     "Option for ``type`` field of ``Input`` struct."
+
+
+class InputType(IntEnum):
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-input#members/"
+
+    MOUSE, KEYBOARD, HARDWARE = range(3)
+
+
+class ShiftState(IntFlag):
+    "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-vkkeyscanw#return-value/"
+
+    SHIFT, CTRL, ALT = autos(3)
+
+
+class KeyEventF(IntFlag):
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-keybdinput#members/"
+
+    DOWN, EXTENDED_KEY, UP, UNICODE, SCAN_CODE = 0, *autos(4)
+
+
+class MouseEventF(IntFlag):
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-mouseinput/"
+
+    (MOVE, L_DOWN, L_UP, R_DOWN, R_UP, MID_DOWN, MID_UP,
+     X_DOWN, X_UP, _1, _2, WHEEL, H_WHEEL, MOVE_NO_COALESCE,
+     VIRTUAL_DESK, ABSOLUTE) = autos(16)  # fmt: off
 
 
 class Mb(IntEnum):
