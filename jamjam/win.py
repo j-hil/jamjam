@@ -111,17 +111,11 @@ user32 = User32()
 "https://learn.microsoft.com/windows/win32/api/winuser/"
 
 
-class InputType:
-    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-input#members"
-
-    MOUSE, KEYBOARD, HARDWARE = 0, 1, 2
-    "Option for ``type`` field of ``Input`` struct."
-
-
 class InputType(IntEnum):
     "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-input#members/"
 
     MOUSE, KEYBOARD, HARDWARE = range(3)
+    "Option for ``type`` field of ``Input`` struct."
 
 
 class ShiftState(IntFlag):
