@@ -140,6 +140,7 @@ lint.ignore = [
     "D203",    # one-blank-line-before-class
     "D213",    # multi-line-summary-second-line
     "D300",    # triple-single-quotes
+    "D418",    # overload-with-docstring
     "D400",    # missing-trailing-period
     "D415",    # missing-terminal-punctuation
     "DOC201",  # docstring-missing-returns

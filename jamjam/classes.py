@@ -1,10 +1,10 @@
 """Creation of custom classes."""
 
 from enum import auto
-from typing import ClassVar, Self, final
+from typing import ClassVar, Protocol, Self, final, overload
 from typing_extensions import TypeIs
 
-from jamjam._lib.typevars import T
+from jamjam._lib.typevars import T, X
 from jamjam.typing import Iter
 
 
@@ -58,3 +58,36 @@ def mk_subtype(name: str, base: type[T]) -> type[T]:
 def autos(n: int, /) -> Iter[auto]:
     "Assign many enum members with ``auto()`` at once."
     return (auto() for _ in range(n))
+
+
+# Currently more reference snippet than anything practical.
+class FullDescriptor(Protocol[X]):
+    "https://docs.python.org/3/howto/descriptor.html"
+
+    def __set_name__(self, t: type[X], name: str, /) -> None:
+        return
+
+    @overload
+    def __get__(self, x: None, t: type[X], /) -> object:
+        "Invocation from a class; ``type(v).name``."
+
+    @overload
+    def __get__(self, x: X, t: type[X], /) -> object:
+        "Invocation from an instance; ``v.name,``"
+
+    @overload
+    def __get__(self, x: X, t: None = None, /) -> object:
+        "So called 'direct' invocation; ``d.__get__(x)``."
+
+    def __get__(
+        self, x: X | None, t: type[X] | None = None
+    ) -> object:
+        msg = f"Can't get member {self} of object {x}"
+        raise AttributeError(msg)
+
+    def __set__(self, x: X, value: object, /) -> None:
+        msg = f"Can't set member {self} of object {x}"
+        raise AttributeError(msg)
+
+    def __delete__(self, x: X, /) -> None:
+        return
