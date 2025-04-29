@@ -73,9 +73,9 @@ def extract(hint: Hint) -> type[Data]:
     if isinstance(hint, UnionType):
         types = get_args(hint)
         return next(t for t in types if issubclass(t, Data))
-    cls: type = get_origin(hint) or hint
-    if issubclass(cls, Data):
-        return cls
+    hint = get_origin(hint) or hint
+    if isinstance(hint, type) and issubclass(hint, Data):
+        return hint
     msg = f"Expected union including a ctype. Got {hint=}"
     raise TypeError(msg)
 

@@ -13,6 +13,6 @@ def test_singleton() -> None:
     assert A() is not B()
 
 
-def test_easy_repr() -> None:
+def test_mk_repr() -> None:
     s = mk_repr("", 1, 2, hello=3, world=4)
     assert s == "str(1, 2, hello=3, world=4)"

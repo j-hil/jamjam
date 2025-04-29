@@ -140,9 +140,9 @@ lint.ignore = [
     "D203",    # one-blank-line-before-class
     "D213",    # multi-line-summary-second-line
     "D300",    # triple-single-quotes
-    "D418",    # overload-with-docstring
     "D400",    # missing-trailing-period
     "D415",    # missing-terminal-punctuation
+    "D418",    # overload-with-docstring
     "DOC201",  # docstring-missing-returns
     "DOC501",  # docstring-missing-exception
     "E741",    # ambiguous-variable-name
@@ -150,8 +150,10 @@ lint.ignore = [
     "ISC001",  # single-line-implicit-string-concatenation
     "PLC0105", # type-name-incorrect-variance
     "PLR2004", # magic-value-comparison
+    "PLW3201", # bad-dunder-method-name
     "PT013",   # pytest-incorrect-pytest-import
     "PYI025",  # unaliased-collections-abc-set-import
+    "RET504",  # unnecessary-assign
     "TC001",   # typing-only-first-party-import
     "TC002",   # typing-only-third-party-import
     "TC003",   # typing-only-standard-library-import
@@ -178,12 +180,14 @@ lint.isort.extra-standard-library = ["typing_extensions"]
 # https://pylint.pycqa.org/en/latest/user_guide/messages/messages_overview.html
 enable = ["all"]
 disable = [
+    "abstract-method",                 # gets this wrong
     "fixme",                           # currently use these to track issues
     "invalid-name",                    # too many exceptions
     "missing-class-docstring",         # flags code in private modules
     "missing-function-docstring",      # flags code in private modules
     "missing-kwoa",                    # conflicts with type-checkers
     "missing-module-docstring",        # flags private modules
+    "no-member",                       # covered by `mypy`
     "no-self-argument",                # conflicts using `cls` in a metaclass
     "protected-access",                # covered by `ruff`
     "redefined-builtin",               # often ok

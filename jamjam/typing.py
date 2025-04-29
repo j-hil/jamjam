@@ -1,7 +1,8 @@
-"""Extensions to the typing library."""
+"Extensions to the typing library. Square this circle ⏺️."
 
 from __future__ import annotations
 
+from abc import abstractmethod
 from collections.abc import (
     Callable,
     Iterable,
@@ -15,12 +16,23 @@ from types import EllipsisType, ModuleType, UnionType
 from typing import (
     Any,
     Concatenate,
+    Generic,
+    Literal,
     Never,
     Protocol,
+    Self,
+    Union,
     cast,
+    get_args,
+    get_origin,
     get_overloads,
 )
-from typing_extensions import ParamSpec, TypeVar
+from typing_extensions import (
+    ParamSpec,
+    TypeAliasType,
+    TypeIs,
+    TypeVar,
+)
 
 from jamjam._lib.typevars import K, P, R, T
 
@@ -36,7 +48,7 @@ Module = ModuleType
 No = Never
 "Alias of ``Never``."
 
-Hint = type[object] | UnionType
+Hint = type[object] | UnionType | TypeAliasType
 """Type of any (non-str) type-hint.
 
 NOTE: isn't complete & may be impossible to do so.
@@ -150,3 +162,90 @@ def use_overloads(
 def get_hints(v: Fn | type | Module) -> dict[str, Hint]:
     "Get a func/class/module's type-hints."
     return get_annotations(v, eval_str=True)
+
+
+class _Delete:
+    "Descriptor that deletes itself when it's assigned."
+
+    def __set_name__(self, t: type, name: str) -> None:
+        delattr(t, name)
+
+
+def typing_only(_: MethodDef[T, P, R]) -> MethodDef[T, P, R]:
+    "Decorate a method to make it unavailable at runtime."
+    return _Delete()  # type: ignore[return-value]  # obvious lie
+
+
+_no_hint: Any = object()
+
+
+class HintWrap(Generic[T]):
+    """Raise a type hints from annotations into runtime code.
+
+    Through this class any hint can we manipulated at runtime
+    inside of class methods, *without* requiring the loss of
+    it's information to the type-checker.
+    """
+
+    # classvar, but can't use ClassVar[...] due to type var
+    _hint: Hint = _no_hint
+
+    @classmethod
+    def get(cls) -> type[T]:
+        hint = cls._hint
+        if hint is _no_hint:
+            msg = f"{cls.__name__} missing type-var value."
+            raise TypeError(msg)
+        # Not sure if this *should* be casted. Should become
+        # obvious with more use cases.
+        return cast(type[T], cls._hint)
+
+    @abstractmethod
+    def _dont_instantiate_(self) -> No: ...
+
+    def __init_subclass__(
+        cls, *, _hint: type[T] = _no_hint, **kwargs: object
+    ) -> None:
+        cls._hint = _hint
+        return super().__init_subclass__(**kwargs)
+
+    def __class_getitem__(cls, item: Any) -> type[Self]:
+        if isinstance(item, tuple):
+            msg = "Only one type parameter allowed."
+            raise TypeError(msg)
+        return type("HintAlias", (cls,), {}, _hint=item)
+
+
+def _extended_isinstance(obj: object, hint: Hint) -> bool:
+    if isinstance(hint, type):
+        return isinstance(obj, hint)
+    if isinstance(hint, UnionType):
+        result = any(
+            _extended_isinstance(obj, sub_hint)
+            for sub_hint in get_args(hint)
+        )
+        return result
+
+    origin = get_origin(hint)
+    if origin is Literal:
+        return obj in get_args(hint)
+    if origin is Union:
+        result = any(
+            _extended_isinstance(obj, sub_hint)
+            for sub_hint in get_args(hint)
+        )
+        return result
+
+    msg = f"Type-hint {hint} is not supported."
+    raise NotImplementedError(msg)
+
+
+class Check(HintWrap[T]):
+    "Generalized isinstance checks."
+
+    # TODO: generalize this to include 3 modes: stingy,
+    # generous and fail.
+    @classmethod
+    def has_instance(cls, obj: object) -> TypeIs[T]:
+        "Check if ``obj`` is an instance of ``T``."
+        return _extended_isinstance(obj, cls._hint)
