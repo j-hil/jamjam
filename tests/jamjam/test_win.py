@@ -1,4 +1,4 @@
-from jamjam._tests.conftest import manual_only
+from jamjam._lib.testing import manual_only
 from jamjam.win import Vk, write
 from jamjam.win.api import (
     Input,
