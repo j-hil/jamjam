@@ -1,4 +1,8 @@
-"Creation of type-safe accessors to C functions."
+"""Creation of type-safe accessors to C functions.
+
+Could be made redundant in future:
+https://github.com/python/cpython/issues/104533
+"""
 # ruff: noqa: SLF001
 
 from __future__ import annotations
