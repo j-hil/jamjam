@@ -27,6 +27,8 @@ class Vk(IntEnum):
 
     # The names are chosen to be short but (hopefully) clear.
     # Those of the form _HH are undefined/reserved.
+    # Mark enumerals as private as else docs too verbose.
+    #: :meta private:
     (NULL, MOUSE1, MOUSE2, CANCEL, MOUSE_WHL, MOUSE_X1,
      MOUSE_X2, _07, BACK, TAB, _0A, _0B, CLEAR, ENTER, _0E,
      _0F, SHIFT, CTRL, ALT, PAUSE, CAPS, IME_KANA, IME_ON,

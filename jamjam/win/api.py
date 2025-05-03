@@ -28,44 +28,44 @@ from jamjam._lib.win import REQUIRED, imp_method
 from jamjam.classes import autos
 from jamjam.iter import irange
 
-Hwnd = int | HWND
-LpCwStr = str | LPCWSTR
-UInt = int | UINT
-Int = int | INT
-Long = int | LONG
-DWord = int | DWORD
-Word = int | WORD
-PULong = c.Pointer[ULONG]
-WChar = str | WCHAR
+Hwnd = int | HWND  #:
+LpCwStr = str | LPCWSTR  #:
+UInt = int | UINT  #:
+Int = int | INT  #:
+Long = int | LONG  #:
+DWord = int | DWORD  #:
+Word = int | WORD  #:
+PULong = c.Pointer[ULONG]  #:
+WChar = str | WCHAR  #:
 
 
 class MouseInput(c.Struct):
     "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-mouseinput/"
 
-    dx: Long
-    dy: Long
-    mouseData: DWord | None = None
-    dwFlags: DWord | None = None
-    time: DWord | None = None
-    dwExtraInfo: PULong | None = None
+    dx: Long  #:
+    dy: Long  #:
+    mouseData: DWord | None = None  #:
+    dwFlags: DWord | None = None  #:
+    time: DWord | None = None  #:
+    dwExtraInfo: PULong | None = None  #:
 
 
 class KeybdInput(c.Struct):
     "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-keybdinput/"
 
-    wVk: Word
-    wScan: Word | None = None
-    dwFlags: DWord | None = None
-    time: DWord | None = None
-    dwExtraInfo: PULong | None = None
+    wVk: Word  #:
+    wScan: Word | None = None  #:
+    dwFlags: DWord | None = None  #:
+    time: DWord | None = None  #:
+    dwExtraInfo: PULong | None = None  #:
 
 
 class HardwareInput(c.Struct):
     "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-hardwareinput/"
 
-    uMsg: DWord
-    wParamL: Word
-    wParamH: Word
+    uMsg: DWord  #:
+    wParamL: Word  #:
+    wParamH: Word  #:
 
 
 class Input(c.Struct):
@@ -73,17 +73,23 @@ class Input(c.Struct):
 
     class _U(c.Union): ...
 
-    type: DWord
-    mi: MouseInput = c.anonymous(_U)
-    ki: KeybdInput = c.anonymous(_U)
-    hi: HardwareInput = c.anonymous(_U)
+    type: DWord  #:
+    mi: MouseInput = c.anonymous(_U)  #:
+    ki: KeybdInput = c.anonymous(_U)  #:
+    hi: HardwareInput = c.anonymous(_U)  #:
 
 
 class User32(ctypes.WinDLL):
     "Type of ``user32``."
 
+    # TODO: calls to CDLL classes apparently do release the
+    # GIL so we should be able to use that
+
     def __init__(self) -> None:
         super().__init__("user32")
+
+    def __repr__(self) -> str:
+        return f"<{self.__class__.__qualname__}: Win32 DLL>"
 
     @imp_method
     def MessageBoxW(
