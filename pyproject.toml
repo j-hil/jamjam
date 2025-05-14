@@ -129,11 +129,12 @@ format.skip-magic-trailing-comma = true
 lint.preview = true
 lint.select = ["ALL"]
 lint.ignore = [
+    "A001",    # builtin-variable-shadowing                 # Often *good* to do imho.
     "ANN401",  # any-type
     "B905",    # zip-without-explicit-strict
     "COM812",  # missing-trailing-comma
     "CPY001",  # missing-copyright-notice
-    "D102",    # https://github.com/astral-sh/ruff/issues/8085
+    "D102",    # undocumented-public-method                 # Disabled due to https://github.com/astral-sh/ruff/issues/8085
     "D105",    # undocumented-magic-method
     "D107",    # undocumented-public-init
     "D203",    # one-blank-line-before-class
@@ -159,6 +160,8 @@ lint.ignore = [
     "TC006",   # runtime-cast-value
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
+    "E501",    # line-too-long                              # Let the autoformatter handle it
+    "S311",    # suspicious-non-cryptographic-random-usage  # Pseudo-random fine for these use cases
 ]
 lint.extend-per-file-ignores."docs/conf.py" = [
     "A001",   # builtin-variable-shadowing
