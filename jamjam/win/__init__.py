@@ -99,6 +99,19 @@ def write(text: str) -> None:
             raise NotImplementedError(msg)
 
 
+def send_input(*inputs: MouseInput | KeybdInput) -> int:
+    "Send user input, auto handling union discrimination."
+    n = len(inputs)
+    structs = (Input * n)()
+    for i, input in enumerate(inputs):
+        if isinstance(input, MouseInput):
+            struct = Input(type=InputType.MOUSE, mi=input)
+        else:
+            struct = Input(type=InputType.KEYBOARD, ki=input)
+        structs[i] = struct
+    return user32.SendInput(n, structs, Input.size()).value
+
+
 def _main() -> None:
     mouse_move = Input(
         type=InputType.MOUSE,

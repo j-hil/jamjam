@@ -1,3 +1,7 @@
+import ctypes
+
+from pytest import raises
+
 from jamjam._lib.testing import manual_only
 from jamjam.win import Vk, write
 from jamjam.win.api import (
@@ -38,3 +42,9 @@ def test_vk() -> None:
 def test_write() -> None:
     "Writes text where cursor is."
     write("Hello!")
+
+
+def test_errcheck() -> None:
+    buffer = ctypes.create_unicode_buffer(256)
+    with raises(OSError, match=r"\[WinError 1400\] .*"):
+        user32.GetWindowTextW(None, buffer, 256)

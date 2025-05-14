@@ -16,6 +16,7 @@ from types import UnionType
 from typing import (
     TYPE_CHECKING,
     Any,
+    Self,
     TypeVar,
     dataclass_transform,
     get_args,
@@ -158,9 +159,11 @@ class Struct(ctypes.Structure, metaclass=_NewStructMeta):
         "Get size in bytes of a C object."
         return ctypes.sizeof(cls)
 
-    def byref(self) -> ArgObj:
-        "Get 'pointer' to C object usable only as a func arg"
-        return ctypes.byref(self)
+    def byref(self) -> Pointer[Self]:
+        "Get 'pointer' to C obj usable only as a func arg."
+        # Lie here as not sure how to fit real return of
+        # ArgObj into DLL signatures.
+        return ctypes.byref(self)  # type: ignore[return-value]
 
     def __repr__(self) -> str:
         fields = {

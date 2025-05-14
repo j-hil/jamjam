@@ -22,8 +22,8 @@ def _errcheck(
     if not (isinstance(rt, type) and issubclass(rt, c.Data)):
         msg = f"Expected c-type return. Got {rt} from {f}."
         raise TypeError(msg)
-    if not result:
-        raise ctypes.WinError()
+    if errno := ctypes.get_last_error():
+        raise ctypes.WinError(errno)
     if not isinstance(result, c.Data):
         if not issubclass(rt, c.Simple):
             msg = f"Can't coerce {result} into ctype {rt}."
