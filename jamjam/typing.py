@@ -48,7 +48,9 @@ Module = ModuleType
 No = Never
 "Alias of ``Never``."
 
-Hint = type[object] | UnionType | TypeAliasType
+Hint = (
+    type[object] | UnionType | TypeAliasType | Fn[...] | None
+)
 """Type of any (non-str) type-hint.
 
 NOTE: isn't complete & may be impossible to do so.

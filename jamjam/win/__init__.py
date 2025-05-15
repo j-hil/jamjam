@@ -84,7 +84,7 @@ def write(text: str) -> None:
     "Write (ascii) ``text`` where-ever the cursor is."
     for char in text:
         short = user32.VkKeyScanW(char)
-        byte1, byte2 = short.value.to_bytes(2)
+        byte1, byte2 = short.to_bytes(2)
         key = Vk(byte2)
         state = ShiftState(byte1)
 
@@ -109,7 +109,7 @@ def send_input(*inputs: MouseInput | KeybdInput) -> int:
         else:
             struct = Input(type=InputType.KEYBOARD, ki=input)
         structs[i] = struct
-    return user32.SendInput(n, structs, Input.size()).value
+    return user32.SendInput(n, structs, Input.size())
 
 
 def _main() -> None:

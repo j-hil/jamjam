@@ -23,7 +23,7 @@ def _start_window() -> int:
         lpCaption="JamJam Mouse Idler",
         uType=Mb.OK,
     )
-    return response.value
+    return response
 
 
 def main() -> None:
@@ -54,7 +54,7 @@ def _ll_mouse_proc(code: int, wm: int, long: int) -> int:
             print("Left mouse button clicked!")
         elif wm == Wm.RBUTTON_DOWN:
             print("Right mouse button clicked!")
-    return user32.CallNextHookEx(None, code, wm, long).value
+    return user32.CallNextHookEx(None, code, wm, long)
 
 
 # TODO: finish this addition to the idle app
@@ -65,14 +65,11 @@ def do_mouse_hook() -> None:
         kernel32.GetModuleHandleW(None),
         0,
     )
-    if not hook.value:
-        msg = "Failed to set mouse hook."
-        raise RuntimeError(msg)
 
     # Put this in a try capture:
     print("Enter a message loop to keep the hook active ...")
     msg_ptr = Msg().byref()  # type: ignore[call-arg]
-    while not user32.GetMessageW(msg_ptr, None, 0, 0).value:
+    while not user32.GetMessageW(msg_ptr, None, 0, 0):
         user32.TranslateMessage(msg_ptr)
         user32.DispatchMessageW(msg_ptr)
     user32.UnhookWindowsHookEx(hook)

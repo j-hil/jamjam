@@ -12,9 +12,9 @@ import ctypes
 from dataclasses import dataclass
 from itertools import groupby
 from textwrap import indent
-from types import UnionType
 from typing import (
     TYPE_CHECKING,
+    Annotated,
     Any,
     Self,
     TypeVar,
@@ -43,16 +43,28 @@ else:
     FuncPtr = _FuncPtr
     NamedFuncPtr = Any  # can only be used as a type-hint
 
+
 _D = TypeVar("_D", bound=BaseData)
 Array = ctypes.Array
 "The array ctype."
 Union = ctypes.Union
 "The union ctype."
+PyNative = int | bytes | str | None
+"Python native types `ctypes` auto wraps/unwraps."
+REQUIRED: Any = object()
+"Default for required params located after optional ones."
+OPTIONAL: Any = object()
+"Default for optional params."
 
 
 class _PointerHint(type):
     def __getitem__(cls, t: type[_D]) -> type[Pointer[_D]]:
-        return ctypes.POINTER(t)
+        try:
+            return ctypes.POINTER(t)
+        except TypeError:
+            # eg `t` is valid as a type-var but not a single
+            # class so return generic pointer class.
+            return ctypes._Pointer
 
     def __call__(cls, data: _D) -> Pointer[_D]:
         return ctypes.pointer(data)
@@ -69,19 +81,22 @@ if TYPE_CHECKING:
 else:
     Pointer = _PointerHint("Pointer", (), {})
 
-Int = int | ctypes.c_int
-Str = str | ctypes.c_wchar_p
+Int = Annotated[int, ctypes.c_int]
+Str = Annotated[str, ctypes.c_wchar_p]
 
 
 def extract(hint: Hint) -> type[Data]:
-    "Extract the c-type from within a type-union."
-    if isinstance(hint, UnionType):
-        types = get_args(hint)
-        return next(t for t in types if issubclass(t, Data))
-    hint = get_origin(hint) or hint
-    if isinstance(hint, type) and issubclass(hint, Data):
-        return hint
-    msg = f"Expected union including a ctype. Got {hint=}"
+    "Extract the c-type from an annotated type."
+    origin = get_origin(hint)
+    cls = origin or hint
+    if isinstance(cls, type) and issubclass(cls, Data):
+        return cls
+    if origin is Annotated:
+        _, *metadata = get_args(hint)
+        for t in metadata:
+            if isinstance(t, type) and issubclass(t, Data):
+                return t
+    msg = f"Expected ctype or annotated py-type. Got {hint=}"
     raise TypeError(msg)
 
 
@@ -92,6 +107,7 @@ class Field:
     name: str
     hint: Hint
     ctype: type[Data]
+    optional: bool
     utype: type[Union] | None
 
 
@@ -103,14 +119,24 @@ else:
 
 class _NewStructMeta(_PyCStructType, type):
     def _mk_field(cls, attr: str, hint: Hint) -> Field:
-        ut = getattr(cls, attr, None)
-        if ut is None or issubclass(ut, Union):
-            return Field(attr, hint, extract(hint), ut)
-        msg = (
-            "Field must be unset, `None` or assigned"
-            f"with `c.anonymous`. Instead got {ut}."
-        )
-        raise TypeError(msg)
+        unset = object()
+        v = getattr(cls, attr, unset)
+        if v is unset:
+            ut = None
+            optional = False
+        elif v is OPTIONAL:
+            ut = None
+            optional = True
+        elif isinstance(v, type) and issubclass(v, Union):
+            ut = v
+            optional = True
+        else:
+            msg = (
+                "Field must be unset or assigned with "
+                f"`OPTIONAL` or `c.anonymous`; not {v}."
+            )
+            raise TypeError(msg)
+        return Field(attr, hint, extract(hint), optional, ut)
 
     def __init__(cls, *args: object, **kwds: object) -> None:
         super().__init__(*args, **kwds)
