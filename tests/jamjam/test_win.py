@@ -1,5 +1,3 @@
-import ctypes
-
 from pytest import raises
 
 from jamjam._lib.testing import manual_only
@@ -9,6 +7,8 @@ from jamjam.win.api import (
     InputType,
     KeybdInput,
     Mb,
+    MouseInput,
+    kernel32,
     user32,
 )
 
@@ -16,11 +16,12 @@ from jamjam.win.api import (
 @manual_only
 def test_message_box() -> None:
     "Message box should pop up."
-    user32.MessageBoxW(
+    r = user32.MessageBoxW(
         lpCaption="My Test",
         lpText="Close this box to complete the test!",
         uType=Mb.OK_CANCEL | Mb.ICON_INFO,
     )
+    assert isinstance(r, int)
 
 
 @manual_only
@@ -44,7 +45,15 @@ def test_write() -> None:
     write("Hello!")
 
 
-def test_errcheck() -> None:
-    buffer = ctypes.create_unicode_buffer(256)
+def test_method_works() -> None:
+    module = kernel32.GetModuleHandleW(None)
+    assert module is not None
+
+
+def test_method_erroring() -> None:
     with raises(OSError, match=r"\[WinError 1400\] .*"):
-        user32.GetWindowTextW(None, buffer, 256)
+        user32.GetWindowTextW(None, "", 256)
+
+
+def test_mi_struct() -> None:
+    MouseInput(dx=1, dy=2)

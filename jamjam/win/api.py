@@ -28,9 +28,10 @@ from ctypes.wintypes import (
     WPARAM,
 )
 from enum import IntEnum, IntFlag
+from typing import Annotated
 
 from jamjam import c
-from jamjam._lib.win import REQUIRED, imp_method
+from jamjam._lib.win import imp_method
 from jamjam.classes import autos
 from jamjam.iter import irange
 
@@ -40,21 +41,32 @@ from jamjam.iter import irange
 # and ctype's unconventional auto-unpacking. Hence
 # experiment with only supporting the python type and see how
 # that goes.
-HWnd = HWND | None  #:
-LpCwStr = LPCWSTR | str | None  #:
-UInt = int | UINT  #:
-Int = int | INT  #:
-Long = int | LONG  #:
-DWord = int | DWORD  #:
-Word = int | WORD  #:
-PULong = c.Pointer[ULONG]  #:
-WChar = str | WCHAR  #:
-LParam = int | LPARAM
-WParam = int | WPARAM
-HHook = HHOOK | None
 LRESULT = LPARAM
-LResult = int | LRESULT
-HInstance = HINSTANCE | None
+
+# NOTE: my poor understanding of VOID pointers suggests
+# that type(NULL) is treated as a super-type of any pointer
+# while NULL itself is treated as an instance of any pointer.
+# Implementation probably needs work.
+VoidPtr = c.Pointer[c.Data] | None
+
+# fmt: off
+HWnd        = Annotated[VoidPtr,    HWND        ]
+LpCwStr     = Annotated[str | None, LPCWSTR     ]
+UInt        = Annotated[int,        UINT        ]
+Int         = Annotated[int,        INT         ]
+Long        = Annotated[int,        LONG        ]
+DWord       = Annotated[int,        DWORD       ]
+Word        = Annotated[int,        WORD        ]
+WChar       = Annotated[str,        WCHAR       ]
+LParam      = Annotated[int,        LPARAM      ]
+WParam      = Annotated[int,        WPARAM      ]
+HHook       = Annotated[VoidPtr,    HHOOK       ]
+LResult     = Annotated[int,        LRESULT     ]
+HInstance   = Annotated[VoidPtr,    HINSTANCE   ]
+Short       = Annotated[int,        SHORT       ]
+Bool        = Annotated[int,        BOOL        ]
+HModule     = Annotated[VoidPtr,    HMODULE     ]
+# fmt: on
 
 
 class MouseInput(c.Struct):
@@ -62,20 +74,20 @@ class MouseInput(c.Struct):
 
     dx: Long  #:
     dy: Long  #:
-    mouseData: DWord | None = None  #:
-    dwFlags: DWord | None = None  #:
-    time: DWord | None = None  #:
-    dwExtraInfo: PULong | None = None  #:
+    mouseData: DWord = c.OPTIONAL  #:
+    dwFlags: DWord = c.OPTIONAL  #:
+    time: DWord = c.OPTIONAL  #:
+    dwExtraInfo: c.Pointer[ULONG] = c.OPTIONAL  #:
 
 
 class KeybdInput(c.Struct):
     "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-keybdinput/"
 
     wVk: Word  #:
-    wScan: Word | None = None  #:
-    dwFlags: DWord | None = None  #:
-    time: DWord | None = None  #:
-    dwExtraInfo: PULong | None = None  #:
+    wScan: Word = c.OPTIONAL  #:
+    dwFlags: DWord = c.OPTIONAL  #:
+    time: DWord = c.OPTIONAL  #:
+    dwExtraInfo: c.Pointer[ULONG] = c.OPTIONAL  #:
 
 
 class HardwareInput(c.Struct):
@@ -98,14 +110,14 @@ class Input(c.Struct):
 
 
 class Point(c.Struct):
-    "https://learn.microsoft.com/en-us/windows/win32/api/windef/ns-windef-point"
+    "https://learn.microsoft.com/windows/win32/api/windef/ns-windef-point"
 
     x: Long
     y: Long
 
 
 class Msg(c.Struct):
-    "https://learn.microsoft.com/en-us/windows/win32/api/winuser/ns-winuser-msg"
+    "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-msg"
 
     hWnd: HWnd
     message: UInt
@@ -115,24 +127,26 @@ class Msg(c.Struct):
     pt: Point
 
 
-# TODO: sync kernel32 & user32 defs with new base class
-class User32(ctypes.WinDLL):
-    "Type of ``user32`` DLL."
-
+class _WinDLL(ctypes.WinDLL):
     def __init__(self) -> None:
-        super().__init__("user32", use_last_error=True)
+        self.name = f"{self.__class__.__name__.lower()}"
+        super().__init__(self.name, use_last_error=True)
 
     def __repr__(self) -> str:
-        return f"<{self.__class__.__qualname__}: Win32 DLL>"
+        return f"<WinDLL: {self.name}>"
+
+
+class User32(_WinDLL):
+    "Type of ``user32`` DLL."
 
     @imp_method
     def MessageBoxW(
         self,
         hWnd: HWnd = None,
-        lpText: LpCwStr | None = None,
-        lpCaption: LpCwStr | None = None,
-        uType: UInt = REQUIRED,
-    ) -> INT:
+        lpText: LpCwStr = None,
+        lpCaption: LpCwStr = None,
+        uType: UInt = c.REQUIRED,
+    ) -> Int:
         "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-messageboxw/"
         raise NotImplementedError
 
@@ -142,12 +156,12 @@ class User32(ctypes.WinDLL):
         cInputs: UInt,
         pInputs: c.Array[Input],
         cbSize: Int,
-    ) -> UINT:
+    ) -> UInt:
         "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-sendinput/"
         raise NotImplementedError
 
     @imp_method
-    def VkKeyScanW(self, ch: WChar) -> SHORT:
+    def VkKeyScanW(self, ch: WChar) -> Short:
         "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-vkkeyscanw/"
         raise NotImplementedError
 
@@ -158,7 +172,7 @@ class User32(ctypes.WinDLL):
         nCode: Int,
         wParam: WParam,
         lParam: LParam,
-    ) -> LRESULT:
+    ) -> LResult:
         "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-callnexthookex"
         raise NotImplementedError
 
@@ -169,7 +183,7 @@ class User32(ctypes.WinDLL):
         lpfn: c.FuncPtr,
         hmod: HInstance,
         dwThreadId: DWord,
-    ) -> HHOOK:
+    ) -> HHook:
         "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-setwindowshookexw"
         raise NotImplementedError
 
@@ -180,59 +194,50 @@ class User32(ctypes.WinDLL):
         hWnd: HWnd,
         wMsgFilterMin: UInt,
         wMsgFilterMax: UInt,
-    ) -> BOOL:
-        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getmessagew"
+    ) -> Bool:
+        "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getmessagew"
         raise NotImplementedError
 
     @imp_method
     def TranslateMessage(
         self, lpMsg: c.Pointer[Msg]
-    ) -> BOOL:
-        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-translatemessage"
+    ) -> Bool:
+        "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-translatemessage"
         raise NotImplementedError
 
     @imp_method
     def DispatchMessageW(
         self, lpMsg: c.Pointer[Msg]
     ) -> LResult:
-        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-dispatchmessagew"
+        "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-dispatchmessagew"
         raise NotImplementedError
 
     @imp_method
-    def UnhookWindowsHookEx(self, hhk: HHook) -> BOOL:
-        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-unhookwindowshookex"
+    def UnhookWindowsHookEx(self, hhk: HHook) -> Bool:
+        "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-unhookwindowshookex"
         raise NotImplementedError
 
     @imp_method
     def GetWindowTextW(
-        self,
-        hWnd: HWnd,
-        lpString: c.Pointer[WCHAR] | c.Array[WCHAR] | str,
-        nMaxCount: Int,
-    ) -> INT:
-        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getwindowtextw"
+        self, hWnd: HWnd, lpString: LpCwStr, nMaxCount: Int
+    ) -> Int:
+        "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getwindowtextw"
         raise NotImplementedError
 
 
-class Kernel32(ctypes.WinDLL):
+class Kernel32(_WinDLL):
     "Type of ``kernel32`` DLL."
-
-    def __init__(self) -> None:
-        super().__init__("kernel32")
-
-    def __repr__(self) -> str:
-        return f"<{self.__class__.__qualname__}: Win32 DLL>"
 
     @imp_method
     def GetModuleHandleW(
         self, lpModuleName: LpCwStr
-    ) -> HMODULE:
-        "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew"
+    ) -> HModule:
+        "https://learn.microsoft.com/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew"
         raise NotImplementedError
 
 
 kernel32 = Kernel32()
-"https://learn.microsoft.com/en-us/windows/win32/api/_base/"
+"https://learn.microsoft.com/windows/win32/api/_base/"
 user32 = User32()
 "https://learn.microsoft.com/windows/win32/api/winuser/"
 
@@ -288,7 +293,7 @@ class Wh(IntEnum):
 class Wm(IntEnum):
     """Windows Message.
 
-    https://learn.microsoft.com/en-us/windows/win32/inputdev/mouse-input-notifications
+    https://learn.microsoft.com/windows/win32/inputdev/mouse-input-notifications
     """
 
     LBUTTON_DOWN = 0x0201

@@ -145,6 +145,10 @@ lint.ignore = [
     "D418",    # overload-with-docstring
     "DOC201",  # docstring-missing-returns
     "DOC501",  # docstring-missing-exception
+    "E202",    # whitespace-before-close-bracket            # Handled by ruff format
+    "E221",    # multiple-spaces-before-operator            # Handled by ruff format
+    "E241",    # multiple-spaces-after-comma                # Handled by ruff format
+    "E501",    # line-too-long                              # Handled by ruff format
     "E741",    # ambiguous-variable-name
     "FIX002",  # line-contains-todo
     "ISC001",  # single-line-implicit-string-concatenation
@@ -154,14 +158,13 @@ lint.ignore = [
     "PT013",   # pytest-incorrect-pytest-import
     "PYI025",  # unaliased-collections-abc-set-import
     "RET504",  # unnecessary-assign
+    "S311",    # suspicious-non-cryptographic-random-usage  # Pseudo-random fine for these use cases
     "TC001",   # typing-only-first-party-import
     "TC002",   # typing-only-third-party-import
     "TC003",   # typing-only-standard-library-import
     "TC006",   # runtime-cast-value
     "TD002",   # missing-todo-author
     "TD003",   # missing-todo-link
-    "E501",    # line-too-long                              # Let the autoformatter handle it
-    "S311",    # suspicious-non-cryptographic-random-usage  # Pseudo-random fine for these use cases
 ]
 lint.extend-per-file-ignores."docs/conf.py" = [
     "A001",   # builtin-variable-shadowing

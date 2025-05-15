@@ -3,37 +3,36 @@ from __future__ import annotations
 import ctypes
 from functools import wraps
 from inspect import signature
-from typing import Any, TypeVar
+from typing import TypeVar, cast
 
 from jamjam import c
-from jamjam._lib.typevars import P, R
-from jamjam.typing import MethodDef, Seq
+from jamjam._lib.typevars import P
+from jamjam.typing import MethodDef
 
 D = TypeVar("D", bound=ctypes.CDLL)
-REQUIRED: Any = object()
-"Default for required params located after optional ones."
+R = TypeVar("R", bound=c.BaseData | c.PyNative)
 
 
 def _errcheck(
-    result: object, f: c.FuncPtr, args: Seq[c.BaseData]
+    result: c.BaseData | c.PyNative,
+    f: c.FuncPtr,
+    args: tuple[c.BaseData, ...],
 ) -> c.Data:
-    _ = args
-    rt = f.restype
-    if not (isinstance(rt, type) and issubclass(rt, c.Data)):
-        msg = f"Expected c-type return. Got {rt} from {f}."
-        raise TypeError(msg)
+    _ = args, f
     if errno := ctypes.get_last_error():
         raise ctypes.WinError(errno)
-    if not isinstance(result, c.Data):
-        if not issubclass(rt, c.Simple):
-            msg = f"Can't coerce {result} into ctype {rt}."
-            raise TypeError(msg)
-        result = rt(result)
+    if isinstance(result, c.PyNative):
+        # Think stubs for `CFuncPtr.errcheck` don't capture
+        # ctypes's special casing of PyNative hence cast.
+        result = cast(c.Data, result)
+    elif not isinstance(result, c.Data):
+        msg = f"Expected c-type return. Got value {result}."
+        raise TypeError(msg)
     return result
 
 
 def imp_method(f: MethodDef[D, P, R]) -> MethodDef[D, P, R]:
-    "Implement a CDLL method from it's name & typing alone."
+    "Implement a WinDLL method from it's name & typing alone."
     method_name = f.__name__
 
     @wraps(f)
@@ -47,7 +46,7 @@ def imp_method(f: MethodDef[D, P, R]) -> MethodDef[D, P, R]:
         argtypes = [c.extract(p.annotation) for p in params]
 
         cfunc.argtypes = argtypes
-        cfunc.restype = sig.return_annotation
+        cfunc.restype = c.extract(sig.return_annotation)
         cfunc.errcheck = _errcheck
 
         bound = sig.bind(*args, **kwargs)
@@ -55,7 +54,7 @@ def imp_method(f: MethodDef[D, P, R]) -> MethodDef[D, P, R]:
         missing = [
             param
             for param, arg in bound.arguments.items()
-            if arg is REQUIRED
+            if arg is c.REQUIRED
         ]
         if missing:
             msg = f"Required param(s) {missing} missing."
