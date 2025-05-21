@@ -12,7 +12,14 @@ from collections.abc import (
 )
 from functools import update_wrapper
 from inspect import get_annotations, signature
-from types import EllipsisType, ModuleType, UnionType
+from types import (
+    EllipsisType,
+    FunctionType,
+    MethodType,
+    ModuleType,
+    TracebackType,
+    UnionType,
+)
 from typing import (
     Any,
     Concatenate,
@@ -45,6 +52,12 @@ Map = Mapping[K, _DV_co]  #:
 Seq = Sequence[_DV_co]  #:
 Module = ModuleType
 "Default type of any module."
+Traceback = TracebackType
+"Type of tracebacks; eg ``sys.exception().__traceback__``."
+Function = FunctionType
+"Type of lambda or ``def`` style funcs written in python."
+Method = MethodType
+"Type of (bound) methods of user-defined class instances."
 No = Never
 "Alias of ``Never``."
 

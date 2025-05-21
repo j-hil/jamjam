@@ -10,7 +10,7 @@ from __future__ import annotations
 from collections import deque
 from collections.abc import Set
 from itertools import groupby
-from typing import overload
+from typing import TypeVar, overload
 
 from jamjam._lib.typevars import K, R, T
 from jamjam.typing import (
@@ -22,6 +22,23 @@ from jamjam.typing import (
     Two,
     use_overloads,
 )
+
+D = TypeVar("D")
+
+
+@overload
+def first(it: CanIter[T]) -> T:
+    return next(iter(it))
+
+
+@overload
+def first(it: CanIter[T], default: D) -> T | D:
+    return next(iter(it), default)
+
+
+@use_overloads
+def first() -> None:
+    "Get 1st item of ``it``, or ``default``."
 
 
 def ordered_set(iterable: CanIter[T]) -> Set[T]:

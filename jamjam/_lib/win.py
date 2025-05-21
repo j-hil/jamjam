@@ -3,12 +3,14 @@ from __future__ import annotations
 import ctypes
 from functools import wraps
 from inspect import signature
-from typing import TypeVar, cast
+from typing import Generic, ParamSpec, TypeVar, cast
 
 from jamjam import c
-from jamjam._lib.typevars import P
-from jamjam.typing import MethodDef
+from jamjam.classes import EzGetDesc
+from jamjam.typing import Fn, MethodDef
 
+P = ParamSpec("P")
+T = TypeVar("T")
 D = TypeVar("D", bound=ctypes.CDLL)
 R = TypeVar("R", bound=c.BaseData | c.PyNative)
 
@@ -32,7 +34,7 @@ def _errcheck(
 
 
 def imp_method(f: MethodDef[D, P, R]) -> MethodDef[D, P, R]:
-    "Implement a WinDLL method from it's name & typing alone."
+    "Implement a WinDLL method from it's name & typing."
     method_name = f.__name__
 
     @wraps(f)
@@ -62,3 +64,28 @@ def imp_method(f: MethodDef[D, P, R]) -> MethodDef[D, P, R]:
         return cfunc(*bound.arguments.values())
 
     return new_method_defn
+
+
+def _win_cfuncify(f: Fn) -> c.FuncPtr:
+    sig = signature(f, eval_str=True)
+    params = list(sig.parameters.values())
+
+    argtypes = [c.extract(p.annotation) for p in params]
+    rtype = c.extract(sig.return_annotation)
+    return ctypes.WINFUNCTYPE(rtype, *argtypes)(f)
+
+
+class WinFuncDesc(EzGetDesc[c.FuncPtr, T], Generic[T, P, R]):
+    def __init__(self, f: MethodDef[T, P, R]) -> None:
+        self.method_def = f
+        # Apparently necessary to stash cfuncs to prevent gc
+        # removing them. Prevents nasty bugs. See:
+        # https://stackoverflow.com/questions/7901890
+        self.cfuncs: dict[T, c.FuncPtr] = {}
+
+    def instance_get(self, x: T) -> c.FuncPtr:
+        cfunc = self.cfuncs.get(x)
+        if cfunc is None:
+            method = self.method_def.__get__(x)
+            cfunc = self.cfuncs[x] = _win_cfuncify(method)
+        return cfunc

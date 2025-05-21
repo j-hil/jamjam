@@ -2,10 +2,13 @@
 
 from enum import auto
 from typing import ClassVar, Protocol, Self, final, overload
-from typing_extensions import TypeIs
+from typing_extensions import TypeIs, TypeVar
 
-from jamjam._lib.typevars import T, X
 from jamjam.typing import Iter
+
+IR = TypeVar("IR", covariant=True)
+T = TypeVar("T", default=object)
+X = TypeVar("X", contravariant=True)
 
 
 class Singleton:
@@ -91,3 +94,50 @@ class FullDescriptor(Protocol[X]):
 
     def __delete__(self, x: X, /) -> None:
         return
+
+
+class EzGetDesc(Protocol[IR, T]):
+    """Easy 'getter' descriptor creation.
+
+    For descriptor decorators use with ``MethodDef`` like::
+        class Desc(Generic[IR, T, P, R], EzGetDesc[IR, T]):
+            def __init__(
+                self, f: MethodDef[T, P, R]
+            ) -> None:
+                self.f = f
+
+    Then when used like so::
+        class A:
+            @Desc
+            def desc(self) -> int: ...
+
+    we'll have T, P & R bound to A, [], and int respectively.
+    I don't think this can be put in a re-usable class
+    while retaining it's typing.
+    """
+
+    owner: type[T]
+    name: str
+
+    def __set_name__(self, t: type[T], name: str, /) -> None:
+        self.owner = t
+        self.name = name
+
+    @overload
+    def __get__(self, x: None, t: type[T], /) -> Self: ...
+    @overload
+    def __get__(self, x: T, t: type[T], /) -> IR: ...
+    @overload
+    def __get__(self, x: T, t: None = None, /) -> IR: ...
+    def __get__(
+        self, x: T | None, t: type[T] | None = None, /
+    ) -> IR | Self:
+        if x is not None:
+            return self.instance_get(x)
+        if t is not None:
+            return self
+        raise NotImplementedError
+
+    def instance_get(self, x: T, /) -> IR:
+        "Invocation from an instance; ``x.name,``"
+        raise NotImplementedError
