@@ -179,6 +179,7 @@ class Struct(ctypes.Structure, metaclass=_NewStructMeta):
     # 2. when accessing member check if it was one set in
     # init, otherwise error. else this can just be a system
     # error which is obtuse.
+    # 3. Allow positional args?
 
     @classmethod
     def size(cls) -> int:

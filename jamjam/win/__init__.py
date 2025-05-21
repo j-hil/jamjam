@@ -7,6 +7,7 @@ the ``jamjam.win.api`` submodule, on which this is built.
 
 from enum import IntEnum
 
+from jamjam.iter import irange
 from jamjam.win.api import (
     Input,
     InputType,
@@ -14,6 +15,7 @@ from jamjam.win.api import (
     KeyEventF,
     MouseEventF,
     MouseInput,
+    Msg,
     ShiftState,
     user32,
 )
@@ -80,6 +82,16 @@ class Vk(IntEnum):
         return f"<{self.name}: 0x{int(self):X}>"
 
 
+class Id(IntEnum):
+    """Message Box button ID.
+
+    https://learn.microsoft.com/en-gb/windows/win32/api/winuser/nf-winuser-messageboxw
+    """
+
+    (OK, CANCEL, ABORT, RETRY, IGNORE, YES, NO, _8, _9,
+     TRY_AGAIN, CONTINUE) = irange(1, 11)  # fmt: off
+
+
 def write(text: str) -> None:
     "Write (ascii) ``text`` where-ever the cursor is."
     for char in text:
@@ -110,6 +122,14 @@ def send_input(*inputs: MouseInput | KeybdInput) -> int:
             struct = Input(type=InputType.KEYBOARD, ki=input)
         structs[i] = struct
     return user32.SendInput(n, structs, Input.size())
+
+
+def msg_loop() -> None:
+    "https://learn.microsoft.com/windows/win32/learnwin32/window-messages#the-message-loop"
+    msg = Msg().byref()
+    while user32.GetMessageW(msg, None, 0, 0):
+        user32.TranslateMessage(msg)
+        user32.DispatchMessageW(msg)
 
 
 def _main() -> None:

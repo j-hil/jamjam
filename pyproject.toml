@@ -154,6 +154,7 @@ lint.ignore = [
     "ISC001",  # single-line-implicit-string-concatenation
     "PLC0105", # type-name-incorrect-variance
     "PLR2004", # magic-value-comparison
+    "PLW2901", # redefined-loop-name                        # Fine for small loops
     "PLW3201", # bad-dunder-method-name
     "PT013",   # pytest-incorrect-pytest-import
     "PYI025",  # unaliased-collections-abc-set-import

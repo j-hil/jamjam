@@ -67,6 +67,7 @@ Short       = Annotated[int,        SHORT       ]
 Bool        = Annotated[int,        BOOL        ]
 HModule     = Annotated[VoidPtr,    HMODULE     ]
 # fmt: on
+# https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types
 
 
 class MouseInput(c.Struct):
@@ -119,12 +120,13 @@ class Point(c.Struct):
 class Msg(c.Struct):
     "https://learn.microsoft.com/windows/win32/api/winuser/ns-winuser-msg"
 
-    hWnd: HWnd
-    message: UInt
-    wParam: WParam
-    lParam: LParam
-    time: DWord
-    pt: Point
+    # fmt: off
+    hWnd:       HWnd    = c.OPTIONAL  #:
+    message:    UInt    = c.OPTIONAL  #:
+    wParam:     WParam  = c.OPTIONAL  #:
+    lParam:     LParam  = c.OPTIONAL  #:
+    time:       DWord   = c.OPTIONAL  #:
+    pt:         Point   = c.OPTIONAL  #:
 
 
 class _WinDLL(ctypes.WinDLL):
@@ -224,6 +226,17 @@ class User32(_WinDLL):
         "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-getwindowtextw"
         raise NotImplementedError
 
+    @imp_method
+    def PostThreadMessageW(
+        self,
+        idThread: DWord,
+        Msg: UInt,
+        wParam: WParam,
+        lParam: LParam,
+    ) -> Bool:
+        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-postthreadmessagew"
+        raise NotImplementedError
+
 
 class Kernel32(_WinDLL):
     "Type of ``kernel32`` DLL."
@@ -233,6 +246,11 @@ class Kernel32(_WinDLL):
         self, lpModuleName: LpCwStr
     ) -> HModule:
         "https://learn.microsoft.com/windows/win32/api/libloaderapi/nf-libloaderapi-getmodulehandlew"
+        raise NotImplementedError
+
+    @imp_method
+    def GetCurrentThreadId(self) -> DWord:
+        "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentthreadid"
         raise NotImplementedError
 
 
@@ -270,16 +288,18 @@ class MouseEventF(IntFlag):
 
 
 class Mb(IntEnum):
+    # fmt: off
     "https://learn.microsoft.com/windows/win32/api/winuser/nf-winuser-messageboxw#parameters/"
 
     (OK, OK_CANCEL, ABORT_RETRY_IGNORE, YN_CANCEL, YN,
-     RETRY_CANCEL,
-     CANCEL_TRY_CONTINUE) = irange(0x0, 0x6, 0x1)  # fmt: off
+     RETRY_CANCEL, CANCEL_TRY_CONT) = irange(0x0, 0x6, 0x1)
     "Buttons option."
-
     (ICON_ERROR, ICON_QUESTION, ICON_WARNING,
-     ICON_INFO) = irange(0x10, 0x40, 0x10)  # fmt: off
+     ICON_INFO) = irange(0x10, 0x40, 0x10)
     "Icon picture option."
+
+    SET_FOREGROUND = 0x10000
+    TOPMOST        = 0x40000
 
 
 class Wh(IntEnum):
@@ -291,10 +311,14 @@ class Wh(IntEnum):
 
 
 class Wm(IntEnum):
-    """Windows Message.
+    "Windows Message."
 
-    https://learn.microsoft.com/windows/win32/inputdev/mouse-input-notifications
-    """
+    # Window Notifications
+    # https://learn.microsoft.com/en-us/windows/win32/winmsg/window-notifications
+    QUIT = 0x0012
 
-    LBUTTON_DOWN = 0x0201
-    RBUTTON_DOWN = 0x0204
+    # Mouse Input
+    # https://learn.microsoft.com/windows/win32/inputdev/mouse-input-notifications
+    MOUSE_MOVE = 0x0200
+    M1_DOWN = 0x0201
+    M2_DOWN = 0x0204

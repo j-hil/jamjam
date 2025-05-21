@@ -1,79 +1,160 @@
-import ctypes
-from concurrent.futures import ThreadPoolExecutor
-from ctypes.wintypes import INT, LONG, LPARAM, WPARAM
-from random import choice, random, randrange
-from time import sleep
+from __future__ import annotations
 
-from jamjam.win import send_input
+import logging
+import sys
+from concurrent.futures import Future, ThreadPoolExecutor
+from contextlib import AbstractContextManager
+from random import choice, random, randrange
+from time import sleep, time
+from typing import Self
+
+from jamjam._lib.win import WinFuncDesc
+from jamjam._text import unwrap
+from jamjam.win import Id, msg_loop, send_input
 from jamjam.win.api import (
+    DWord,
+    Int,
+    LParam,
+    LResult,
     Mb,
     MouseEventF,
     MouseInput,
-    Msg,
     Wh,
     Wm,
+    WParam,
     kernel32,
     user32,
 )
 
+_log = logging.getLogger(__name__)
+_PAUSE_SECS = 3
+_HC_ACTION = 0
+"Hook Code: Actionable."
 
-def _start_window() -> int:
+
+def _start_window() -> Id:
+    _log.info("Opened window.")
+
     response = user32.MessageBoxW(
-        lpText="Mouse Idler is active. Press OK to disable.",
-        lpCaption="JamJam Mouse Idler",
-        uType=Mb.OK,
+        lpText=unwrap(f"""\
+            The idler will randomly move your mouse.
+
+            Taking control will pause the idler; after
+            {_PAUSE_SECS} seconds it will resume. CONTINUE
+            will pause the program until TRY-AGAIN is
+            selected. CANCEL exits the program entirely.
+        """),
+        lpCaption="🐭 JamJam Mouse Idler",
+        uType=Mb.CANCEL_TRY_CONT | Mb.TOPMOST,
     )
-    return response
+    return Id(response)
+
+
+class _MouseHook(AbstractContextManager):
+    _thread: DWord | None = None
+    _future: Future | None = None
+    _user_control = True
+
+    def __init__(self, executor: ThreadPoolExecutor) -> None:
+        self.executor = executor
+        self._last_user_input = time()
+
+    def jump_mouse(self) -> None:
+        secs = 1 + random()
+        sleep(secs)
+
+        dx = choice([-1, 1]) * randrange(10, 50)
+        dy = choice([-1, 1]) * randrange(10, 50)
+        mi = MouseInput(
+            dx=dx, dy=dy, dwFlags=MouseEventF.MOVE
+        )
+
+        self._user_control = False
+        if time() - self._last_user_input > _PAUSE_SECS:
+            send_input(mi)
+            _log.info(f"Moved {dx, dy} after {secs:.2}s.")
+        self._user_control = True
+
+    @WinFuncDesc
+    def _hk(self, c: Int, wm: WParam, lp: LParam) -> LResult:
+        """Low level mouse hook procedure.
+
+        Takes the hook code, windows mouse message & a
+        pointer to a MSLLHOOKSTRUCT (unused). See:
+        https://learn.microsoft.com/windows/win32/winmsg/lowlevelmouseproc
+        """
+        _log.debug("LL mouse hook run")
+
+        if c != _HC_ACTION or not self._user_control:
+            pass
+        elif wm in {Wm.M1_DOWN, Wm.M2_DOWN, Wm.MOUSE_MOVE}:
+            self._last_user_input = time()
+            _log.debug("User used mouse.")
+
+        try:
+            return user32.CallNextHookEx(None, c, wm, lp)
+        except OSError as ex:
+            if ex.winerror != 127:
+                raise
+            # This only occurs when debugging. Maybe related
+            # to thread manipulation by debugger?
+            _log.error(f"Ignored: {ex}")
+        return 0
+
+    def _start(self) -> None:
+        self._thread = kernel32.GetCurrentThreadId()
+        _log.info(f"Starting hook on thread {self._thread}")
+
+        hook = user32.SetWindowsHookExW(
+            Wh.MOUSE_LL,
+            self._hk,
+            kernel32.GetModuleHandleW(None),
+            0,
+        )
+        msg_loop()
+        user32.UnhookWindowsHookEx(hook)
+        _log.info("Hook ended.")
+
+    def __enter__(self) -> Self:
+        self._future = self.executor.submit(self._start)
+        return self
+
+    def __exit__(self, *_: object) -> None:
+        thread = self._thread
+        if thread is None or self._future is None:
+            msg = "Cannot stop hook before starting it."
+            raise RuntimeError(msg)
+
+        _log.info(f"Killing {thread=}")
+        user32.PostThreadMessageW(thread, Wm.QUIT, 0, 0)
+        self._future.result()
+
+    start = __enter__
+    stop = __exit__
 
 
 def main() -> None:
+    id = Id.TRY_AGAIN
     with ThreadPoolExecutor() as executor:
-        future = executor.submit(_start_window)
-        while future.running():
-            seconds = 1 + random()
-            sleep(seconds)
-
-            dx = choice([-1, 1]) * randrange(10, 50)
-            dy = choice([-1, 1]) * randrange(10, 50)
-            mi = MouseInput(
-                dx=dx, dy=dy, dwFlags=MouseEventF.MOVE
-            )
-            send_input(mi)
-            print(f"Moved {dx, dy} after {seconds:.2} secs.")
-
-
-@ctypes.WINFUNCTYPE(LONG, INT, WPARAM, LPARAM)  # type: ignore[misc]
-def _ll_mouse_proc(code: int, wm: int, long: int) -> int:
-    """Low level mouse hook procedure.
-
-    https://learn.microsoft.com/en-us/windows/win32/winmsg/lowlevelmouseproc.
-    """
-    hc_action = 0  # const, see link in docstring
-    if code == hc_action:
-        if wm == Wm.LBUTTON_DOWN:
-            print("Left mouse button clicked!")
-        elif wm == Wm.RBUTTON_DOWN:
-            print("Right mouse button clicked!")
-    return user32.CallNextHookEx(None, code, wm, long)
-
-
-# TODO: finish this addition to the idle app
-def do_mouse_hook() -> None:
-    hook = user32.SetWindowsHookExW(
-        Wh.MOUSE_LL,
-        _ll_mouse_proc,
-        kernel32.GetModuleHandleW(None),
-        0,
-    )
-
-    # Put this in a try capture:
-    print("Enter a message loop to keep the hook active ...")
-    msg_ptr = Msg().byref()  # type: ignore[call-arg]
-    while not user32.GetMessageW(msg_ptr, None, 0, 0):
-        user32.TranslateMessage(msg_ptr)
-        user32.DispatchMessageW(msg_ptr)
-    user32.UnhookWindowsHookEx(hook)
+        while id in {Id.TRY_AGAIN, Id.CONTINUE}:
+            window = executor.submit(_start_window)
+            if id == Id.TRY_AGAIN:
+                with _MouseHook(executor) as hook:
+                    while not window.done():
+                        hook.jump_mouse()
+            id = window.result()
 
 
 if __name__ == "__main__":
+    logging.basicConfig(
+        format=(
+            "{asctime} {thread:<5} {levelname:<8} {msg}\n"
+            "└────────────────────── {pathname}:{lineno}"
+        ),
+        style="{",
+        datefmt="%X",
+        stream=sys.stdout,
+    )
+    _log.setLevel(logging.INFO)
+
     main()
