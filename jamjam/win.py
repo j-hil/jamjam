@@ -1,24 +1,91 @@
 """Interaction with Windows OS.
 
-The 'top level' ``jamjam.win`` provides 'nice' pythonic
-wrappers. For a close map to the native windows API use
-the ``jamjam.win.api`` submodule, on which this is built.
+Provides 'nice' pythonic wrappers to the Windows API.
+For a close map to the native windows API use
+``jamjam.winapi`` , on which this is built.
 """
 
-from enum import IntEnum
+from enum import IntEnum, IntFlag
 
+from jamjam.classes import autos
 from jamjam.iter import irange
-from jamjam.win.api import (
+from jamjam.winapi import (
     Input,
-    InputType,
     KeybdInput,
-    KeyEventF,
-    MouseEventF,
     MouseInput,
     Msg,
-    ShiftState,
     user32,
 )
+
+
+class InputType(IntEnum):
+    "Option for ``type`` field of ``Input`` struct."
+
+    MOUSE, KEYBOARD, HARDWARE = range(3)
+
+
+class ShiftState(IntFlag):
+    "Part of the ``VkKeyScanW`` return."
+
+    SHIFT, CTRL, ALT = autos(3)
+
+
+class KeyEventF(IntFlag):
+    "Key Event Flag for ``KeyBdInput`` struct."
+
+    DOWN, EXTENDED_KEY, UP, UNICODE, SCAN_CODE = 0, *autos(4)
+
+
+class MouseEventF(IntFlag):
+    "Mouse Even Flag for ``MouseInput`` struct."
+
+    (MOVE, L_DOWN, L_UP, R_DOWN, R_UP, MID_DOWN, MID_UP,
+     X_DOWN, X_UP, _1, _2, WHEEL, H_WHEEL, MOVE_NO_COALESCE,
+     VIRTUAL_DESK, ABSOLUTE) = autos(16)  # fmt: off
+
+
+class Mb(IntEnum):
+    # fmt: off
+    "Message Box configuration options."
+
+    (OK, OK_CANCEL, ABORT_RETRY_IGNORE, YN_CANCEL, YN,
+     RETRY_CANCEL, CANCEL_TRY_CONT) = irange(0x0, 0x6, 0x1)
+    "Buttons option."
+
+    (ICON_ERROR, ICON_QUESTION, ICON_WARNING,
+     ICON_INFO) = irange(0x10, 0x40, 0x10)
+    "Icon picture option."
+
+    SET_FOREGROUND = 0x10000
+    TOPMOST        = 0x40000
+
+
+class Wh(IntEnum):
+    "https://learn.microsoft.com/en-gb/windows/win32/api/winuser/nf-winuser-setwindowshookexw#parameters"
+
+    (MSG, _0, _1, KEYBOARD, GET_MSG, CALL_WND, CBT, SYS_MSG,
+     MOUSE, _8, DEBUG, SHELL, FOREGROUND_IDLE,
+     CALL_WND_RETURN, KEYBOARD_LL, MOUSE_LL) = irange(-1, 14)  # fmt: off
+
+
+class Wm(IntEnum):
+    # fmt: off
+    """Window Message.
+
+    Window Notifications:
+    https://learn.microsoft.com/en-us/windows/win32/winmsg/window-notifications
+
+    Mouse Input:
+    https://learn.microsoft.com/windows/win32/inputdev/mouse-input-notifications
+    """
+
+    # Window Notifications
+    QUIT = 0x0012
+
+    # Mouse Input
+    MOUSE_MOVE  = 0x0200
+    M1_DOWN     = 0x0201
+    M2_DOWN     = 0x0204
 
 
 class Vk(IntEnum):
@@ -83,7 +150,7 @@ class Vk(IntEnum):
 
 
 class Id(IntEnum):
-    """Message Box button ID.
+    """ID of Message Box button.
 
     https://learn.microsoft.com/en-gb/windows/win32/api/winuser/nf-winuser-messageboxw
     """

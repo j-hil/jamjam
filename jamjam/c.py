@@ -44,7 +44,6 @@ else:
     NamedFuncPtr = Any  # can only be used as a type-hint
 
 
-_D = TypeVar("_D", bound=BaseData)
 Array = ctypes.Array
 "The array ctype."
 Union = ctypes.Union
@@ -55,6 +54,10 @@ REQUIRED: Any = object()
 "Default for required params located after optional ones."
 OPTIONAL: Any = object()
 "Default for optional params."
+
+# Cannot expand _D to include (annotated) PyNative as
+# ctypes._Pointer is generic only in BaseData.
+_D = TypeVar("_D", bound=BaseData)
 
 
 class _PointerHint(type):
@@ -189,7 +192,7 @@ class Struct(ctypes.Structure, metaclass=_NewStructMeta):
     def byref(self) -> Pointer[Self]:
         "Get 'pointer' to C obj usable only as a func arg."
         # Lie here as not sure how to fit real return of
-        # ArgObj into DLL signatures.
+        # ArgObj into DLL signatures easily.
         return ctypes.byref(self)  # type: ignore[return-value]
 
     def __repr__(self) -> str:

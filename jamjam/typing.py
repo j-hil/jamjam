@@ -41,15 +41,15 @@ from typing_extensions import (
     TypeVar,
 )
 
-from jamjam._lib.typevars import K, P, R, T
+P = ParamSpec("P", default=...)
+R = TypeVar("R", default=object)
+V = TypeVar("V", default=object, covariant=True)
+K = TypeVar("K")
+T = TypeVar("T")
 
-_DP = ParamSpec("_DP", default=...)
-_DV = TypeVar("_DV", default=object)
-_DV_co = TypeVar("_DV_co", default=object, covariant=True)
-
-Fn = Callable[_DP, _DV]  #:
-Map = Mapping[K, _DV_co]  #:
-Seq = Sequence[_DV_co]  #:
+Fn = Callable[P, R]  #:
+Map = Mapping[K, V]  #:
+Seq = Sequence[V]  #:
 Module = ModuleType
 "Default type of any module."
 Traceback = TracebackType
@@ -61,9 +61,7 @@ Method = MethodType
 No = Never
 "Alias of ``Never``."
 
-Hint = (
-    type[object] | UnionType | TypeAliasType | Fn[...] | None
-)
+Hint = type[object] | UnionType | TypeAliasType | Fn | None
 """Type of any (non-str) type-hint.
 
 NOTE: isn't complete & may be impossible to do so.
@@ -72,8 +70,8 @@ NOTE: isn't complete & may be impossible to do so.
 # Abbreviating these was *hard*. Iter = Iterator won as
 # Iterator is the base concept (tho not base class) and the
 # `iter` func really should return `Iter`.
-Iter = Iterator[_DV_co]  #:
-CanIter = Iterable[_DV_co]  #:
+Iter = Iterator[V]  #:
+CanIter = Iterable[V]  #:
 
 # EllipsisType is bad since it suggests type of `type(...)`
 # but we can't use Ellipsis since that's a built-in alias
@@ -81,11 +79,11 @@ CanIter = Iterable[_DV_co]  #:
 Dots = EllipsisType
 "Type of singleton/literal ``...``."
 
-Two = tuple[_DV, _DV]
+Two = tuple[R, R]
 "Type of homogenous 2-tuple."
-Three = tuple[_DV, _DV, _DV]
+Three = tuple[R, R, R]
 "Type of homogenous 3-tuple."
-StrDict = dict[str, _DV]
+StrDict = dict[str, R]
 "Type of a homogenous dictionary with string keys."
 MethodDef = Fn[Concatenate[T, P], R]
 "Parameterized type for method definitions."

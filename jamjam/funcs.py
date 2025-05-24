@@ -3,12 +3,21 @@
 from __future__ import annotations
 
 from functools import update_wrapper
-from typing import TYPE_CHECKING, Generic, Protocol, overload
+from typing import (
+    Generic,
+    ParamSpec,
+    Protocol,
+    TypeVar,
+    overload,
+)
 
-from jamjam._lib.typevars import F, P, R, T_co, T_con
+from jamjam.typing import Fn
 
-if TYPE_CHECKING:
-    from jamjam.typing import Fn
+F = TypeVar("F", bound=Fn)
+P = ParamSpec("P")
+R = TypeVar("R")
+C = TypeVar("C", covariant=True)
+T = TypeVar("T", contravariant=True)
 
 
 class Decorator(Protocol):
@@ -61,11 +70,11 @@ class DecoratorFactory(Generic[P]):
         return decorator(f)
 
 
-class _Expander(Protocol[T_co, P]):
-    def __call__(self, f: Fn[[T_co], R], /) -> Fn[P, R]: ...
+class _Expander(Protocol[C, P]):
+    def __call__(self, f: Fn[[C], R], /) -> Fn[P, R]: ...
 
 
-def expand(cls: Fn[P, T_con]) -> _Expander[T_con, P]:
+def expand(cls: Fn[P, T]) -> _Expander[T, P]:
     """Define and implement a function using a class.
 
     Define a func with signature matching ``cls.__new__``.
@@ -74,7 +83,7 @@ def expand(cls: Fn[P, T_con]) -> _Expander[T_con, P]:
     args into ``cls``.
     """
 
-    def decorator(f: Fn[[T_con], R]) -> Fn[P, R]:
+    def decorator(f: Fn[[T], R]) -> Fn[P, R]:
         def g(*args: P.args, **kwargs: P.kwargs) -> R:
             arg = cls(*args, **kwargs)
             return f(arg)
