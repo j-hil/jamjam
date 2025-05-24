@@ -1,30 +1,42 @@
 from __future__ import annotations
 
+import ctypes
 import logging
 import sys
 from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import AbstractContextManager
+from inspect import signature
 from random import choice, random, randrange
 from time import sleep, time
-from typing import Self
+from typing import Generic, ParamSpec, Self, TypeVar
 
-from jamjam._lib.win import WinFuncDesc
+from jamjam import c
 from jamjam._text import unwrap
-from jamjam.win import Id, msg_loop, send_input
-from jamjam.win.api import (
+from jamjam.classes import EzGetDesc
+from jamjam.typing import Fn, MethodDef
+from jamjam.win import (
+    Id,
+    Mb,
+    MouseEventF,
+    Wh,
+    Wm,
+    msg_loop,
+    send_input,
+)
+from jamjam.winapi import (
     DWord,
     Int,
     LParam,
     LResult,
-    Mb,
-    MouseEventF,
     MouseInput,
-    Wh,
-    Wm,
     WParam,
     kernel32,
     user32,
 )
+
+P = ParamSpec("P")
+T = TypeVar("T")
+R = TypeVar("R", bound=c.BaseData | c.PyNative)
 
 _log = logging.getLogger(__name__)
 _PAUSE_SECS = 3
@@ -48,6 +60,33 @@ def _start_window() -> Id:
         uType=Mb.CANCEL_TRY_CONT | Mb.TOPMOST,
     )
     return Id(response)
+
+
+def _win_cfuncify(f: Fn) -> c.FuncPtr:
+    sig = signature(f, eval_str=True)
+    params = list(sig.parameters.values())
+
+    argtypes = [c.extract(p.annotation) for p in params]
+    rtype = c.extract(sig.return_annotation)
+    return ctypes.WINFUNCTYPE(rtype, *argtypes)(f)
+
+
+class _WinFnDesc(EzGetDesc[c.FuncPtr, T], Generic[T, P, R]):
+    "Windows C-Function creation Descriptor"
+
+    def __init__(self, f: MethodDef[T, P, R]) -> None:
+        self.method_def = f
+        # Apparently necessary to stash cfuncs to prevent gc
+        # removing them. Prevents nasty bugs. See:
+        # https://stackoverflow.com/questions/7901890
+        self.cfuncs: dict[T, c.FuncPtr] = {}
+
+    def instance_get(self, x: T) -> c.FuncPtr:
+        cfunc = self.cfuncs.get(x)
+        if cfunc is None:
+            method = self.method_def.__get__(x)
+            cfunc = self.cfuncs[x] = _win_cfuncify(method)
+        return cfunc
 
 
 class _MouseHook(AbstractContextManager):
@@ -75,7 +114,7 @@ class _MouseHook(AbstractContextManager):
             _log.info(f"Moved {dx, dy} after {secs:.2}s.")
         self._user_control = True
 
-    @WinFuncDesc
+    @_WinFnDesc
     def _hk(self, c: Int, wm: WParam, lp: LParam) -> LResult:
         """Low level mouse hook procedure.
 

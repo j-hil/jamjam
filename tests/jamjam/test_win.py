@@ -1,12 +1,10 @@
 from pytest import raises
 
-from jamjam._lib.testing import manual_only
-from jamjam.win import Vk, write
-from jamjam.win.api import (
+from jamjam._testing import manual_only
+from jamjam.win import InputType, Mb, Vk, write
+from jamjam.winapi import (
     Input,
-    InputType,
     KeybdInput,
-    Mb,
     MouseInput,
     kernel32,
     user32,
@@ -51,8 +49,10 @@ def test_method_works() -> None:
 
 
 def test_method_erroring() -> None:
-    with raises(OSError, match=r"\[WinError 1400\] .*"):
+    with raises(OSError) as ex_info:  # noqa: PT011
         user32.GetWindowTextW(None, "", 256)
+    assert ex_info.value.winerror == 1400
+    assert ex_info.value.strerror == "Invalid window handle."
 
 
 def test_mi_struct() -> None:

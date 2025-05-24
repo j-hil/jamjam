@@ -12,7 +12,6 @@ from collections.abc import Set
 from itertools import groupby
 from typing import TypeVar, overload
 
-from jamjam._lib.typevars import K, R, T
 from jamjam.typing import (
     CanIter,
     Dots,
@@ -24,6 +23,9 @@ from jamjam.typing import (
 )
 
 D = TypeVar("D")
+K = TypeVar("K")
+R = TypeVar("R")
+T = TypeVar("T")
 
 
 @overload
