@@ -8,7 +8,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "jamjam"
-version = "0.0.1"
+version = "0.0.2"
 readme = 'README.md'
 # from https://choosealicense.com/licenses/gpl-3.0/
 license = { file = 'LICENSE' }
