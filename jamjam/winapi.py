@@ -5,12 +5,29 @@ easy to auto-generate, should I ever need to.
 More 'bespoke' wrappers are in ``jamjam.win``.
 """
 
-# ruff: noqa: N802, N803, N815
+# ruff: noqa: N802, N803, N815, PLR0917, PLR0913
 from __future__ import annotations
 
 import ctypes
-from ctypes import wintypes
-from ctypes.wintypes import ULONG
+from ctypes.wintypes import (
+    BOOL,
+    DWORD,
+    HHOOK,
+    HINSTANCE,
+    HMODULE,
+    HWND,
+    INT,
+    LONG,
+    LPARAM,
+    LPCWSTR,
+    PDWORD,
+    SHORT,
+    UINT,
+    ULONG,
+    WCHAR,
+    WORD,
+    WPARAM,
+)
 from functools import wraps
 from inspect import signature
 from typing import Annotated, ParamSpec, TypeVar, cast
@@ -26,8 +43,10 @@ R = TypeVar("R", bound=c.BaseData | c.PyNative)
 # NOTE: my poor understanding of VOID pointers suggests
 # that type(NULL) is treated as a super-type of any pointer
 # while NULL itself is treated as an instance of any pointer.
-VoidPtr = c.Pointer[c.Data] | None
+VoidPtr = c.Pointer[c.Data] | ctypes.c_void_p | None
 ULongPtr = c.Pointer[ULONG]
+PDWORD_PTR = c.Pointer[PDWORD]
+FARPROC = ctypes.c_void_p
 
 # Typing both the python type and the ctype is
 # probably too hard - especially with `converters` currently
@@ -35,22 +54,24 @@ ULongPtr = c.Pointer[ULONG]
 # and ctype's unconventional auto-unpacking. Hence for now
 # only support the python type.
 # fmt: off
-HWnd        = Annotated[VoidPtr,    wintypes.HWND       ]
-LpCwStr     = Annotated[str | None, wintypes.LPCWSTR    ]
-UInt        = Annotated[int,        wintypes.UINT       ]
-Int         = Annotated[int,        wintypes.INT        ]
-Long        = Annotated[int,        wintypes.LONG       ]
-DWord       = Annotated[int,        wintypes.DWORD      ]
-Word        = Annotated[int,        wintypes.WORD       ]
-WChar       = Annotated[str,        wintypes.WCHAR      ]
-LParam      = Annotated[int,        wintypes.LPARAM     ]
-WParam      = Annotated[int,        wintypes.WPARAM     ]
-HHook       = Annotated[VoidPtr,    wintypes.HHOOK      ]
-LResult     = Annotated[int,        wintypes.LPARAM     ]
-HInstance   = Annotated[VoidPtr,    wintypes.HINSTANCE  ]
-Short       = Annotated[int,        wintypes.SHORT      ]
-Bool        = Annotated[int,        wintypes.BOOL       ]
-HModule     = Annotated[VoidPtr,    wintypes.HMODULE    ]
+HWnd        = Annotated[VoidPtr,            HWND        ]
+LpCwStr     = Annotated[str | None,         LPCWSTR     ]
+UInt        = Annotated[int,                UINT        ]
+Int         = Annotated[int,                INT         ]
+Long        = Annotated[int,                LONG        ]
+DWord       = Annotated[int,                DWORD       ]
+Word        = Annotated[int,                WORD        ]
+WChar       = Annotated[str,                WCHAR       ]
+LParam      = Annotated[int,                LPARAM      ]
+WParam      = Annotated[int,                WPARAM      ]
+HHook       = Annotated[VoidPtr,            HHOOK       ]
+LResult     = Annotated[int,                LPARAM      ]
+HInstance   = Annotated[VoidPtr,            HINSTANCE   ]
+Short       = Annotated[int,                SHORT       ]
+Bool        = Annotated[int,                BOOL        ]
+HModule     = Annotated[VoidPtr,            HMODULE     ]
+DWordPtrPtr = Annotated[PDWORD_PTR | None,  PDWORD_PTR  ]
+FarProc     = Annotated[VoidPtr,            FARPROC     ]
 # fmt: on
 # https://learn.microsoft.com/en-us/windows/win32/winprog/windows-data-types
 
@@ -277,6 +298,31 @@ class User32(_WinDLL):
         "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-postthreadmessagew"
         raise NotImplementedError
 
+    @_imp_method
+    def SendMessageW(
+        self,
+        hWnd: HWnd,
+        Msg: UInt,
+        wParam: WParam,
+        lParam: LParam,
+    ) -> LResult:
+        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagew"
+        raise NotImplementedError
+
+    @_imp_method
+    def SendMessageTimeoutW(
+        self,
+        hWnd: HWnd,
+        Msg: UInt,
+        wParam: WParam,
+        lParam: LParam,
+        fuFlags: UInt,
+        uTimeout: UInt,
+        lpdwResult: DWordPtrPtr = None,
+    ) -> LResult:
+        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagetimeoutw"
+        raise NotImplementedError
+
 
 class Kernel32(_WinDLL):
     "Type of ``kernel32`` DLL."
@@ -291,6 +337,13 @@ class Kernel32(_WinDLL):
     @_imp_method
     def GetCurrentThreadId(self) -> DWord:
         "https://learn.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-getcurrentthreadid"
+        raise NotImplementedError
+
+    @_imp_method
+    def GetProcAddress(
+        self, hModule: HModule, lpProcName: LpCwStr
+    ) -> FarProc:
+        "https://learn.microsoft.com/en-us/windows/win32/api/libloaderapi/nf-libloaderapi-getprocaddress"
         raise NotImplementedError
 
 

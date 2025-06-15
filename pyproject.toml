@@ -34,7 +34,8 @@ dev = [
 
 [project.scripts]
 "jj.info" = "jamjam._scripts.info:main"
-
+"jj.idle" = "jamjam._scripts.idle:main"
+"jj.dark" = "jamjam._scripts.dark:main"
 
 [tool.mypy]
 # https://mypy.readthedocs.io/en/stable/config_file.html

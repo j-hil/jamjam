@@ -5,6 +5,7 @@ For a close map to the native windows API use
 ``jamjam.winapi`` , on which this is built.
 """
 
+from ctypes.wintypes import HWND
 from enum import IntEnum, IntFlag
 
 from jamjam.classes import autos
@@ -72,20 +73,21 @@ class Wm(IntEnum):
     # fmt: off
     """Window Message.
 
-    Window Notifications:
-    https://learn.microsoft.com/en-us/windows/win32/winmsg/window-notifications
-
-    Mouse Input:
-    https://learn.microsoft.com/windows/win32/inputdev/mouse-input-notifications
+    https://learn.microsoft.com/en-us/windows/win32/winmsg/about-messages-and-message-queues#system-defined-messages
     """
 
     # Window Notifications
-    QUIT = 0x0012
+    QUIT          = 0x0012
+    THEME_CHANGED = 0x031A
 
     # Mouse Input
     MOUSE_MOVE  = 0x0200
     M1_DOWN     = 0x0201
     M2_DOWN     = 0x0204
+
+    # Other
+    SETTING_CHANGE = 0x001A
+    "https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-settingchange"
 
 
 class Vk(IntEnum):
@@ -157,6 +159,23 @@ class Id(IntEnum):
 
     (OK, CANCEL, ABORT, RETRY, IGNORE, YES, NO, _8, _9,
      TRY_AGAIN, CONTINUE) = irange(1, 11)  # fmt: off
+
+
+class Smto(IntFlag):
+    """Send Message Time-Out enumeration.
+
+    https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagetimeoutw
+    """
+
+    NORMAL, BLOCK, ABORT, WAIT, ERROR = 0x00, *autos(3), 0x20
+
+
+BROADCAST = HWND(0xFFFF)
+"""For broadcasting messages to all top-level windows.
+
+Eg see:
+https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessage#parameters
+"""
 
 
 def write(text: str) -> None:
