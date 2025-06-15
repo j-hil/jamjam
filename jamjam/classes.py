@@ -1,9 +1,21 @@
 """Creation of custom classes."""
 
+from __future__ import annotations
+
+import sys
+from abc import ABC, abstractmethod
 from enum import auto
-from typing import ClassVar, Protocol, Self, final, overload
+from typing import (
+    ClassVar,
+    Generic,
+    Protocol,
+    Self,
+    final,
+    overload,
+)
 from typing_extensions import TypeIs, TypeVar
 
+from jamjam._text import unwrap
 from jamjam.typing import Iter
 
 IR = TypeVar("IR", covariant=True)
@@ -96,7 +108,7 @@ class FullDescriptor(Protocol[X]):
         return
 
 
-class EzGetDesc(Protocol[IR, T]):
+class EzGetDesc(ABC, Generic[IR, T]):
     """Easy 'getter' descriptor creation.
 
     For descriptor decorators use with ``MethodDef`` like::
@@ -116,12 +128,28 @@ class EzGetDesc(Protocol[IR, T]):
     while retaining it's typing.
     """
 
-    owner: type[T]
-    name: str
+    __owner: type[T] | None = None
+    __name: str | None = None
 
     def __set_name__(self, t: type[T], name: str, /) -> None:
-        self.owner = t
-        self.name = name
+        self.__owner = t
+        self.__name = name
+
+    @final
+    @property
+    def __name__(self) -> str:
+        if self.__name is None:
+            msg = f"{self} not yet assigned to class."
+            raise RuntimeError(msg)
+        return self.__name
+
+    @final
+    @property
+    def __owner__(self) -> type[T]:
+        if self.__owner is None:
+            msg = f"{self} not yet assigned to class."
+            raise RuntimeError(msg)
+        return self.__owner
 
     @overload
     def __get__(self, x: None, t: type[T], /) -> Self: ...
@@ -138,6 +166,34 @@ class EzGetDesc(Protocol[IR, T]):
             return self
         raise NotImplementedError
 
+    @abstractmethod
     def instance_get(self, x: T, /) -> IR:
         "Invocation from an instance; ``x.name,``"
         raise NotImplementedError
+
+
+class _DataModel:
+    "https://docs.python.org/3/reference/datamodel.html"
+
+    count: ClassVar = 0
+
+    def __init__(self) -> None:
+        type(self).count += 1
+        self.position = self.count
+        self.stream = sys.stdout
+
+    def __invert__(self) -> _DataModel:
+        msg = unwrap("""
+            ~ is implemented with `__invert__`. Generally it
+            should return an instance of the same class as
+            self, or a parent.
+            """)
+        self.stream.write(msg + "\n")
+        return _DataModel()
+
+    def __repr__(self) -> str:
+        return self.__class__.__name__ + f"({self.position})"
+
+
+MAGIC_HELPER = _DataModel()
+"Interactive object for reminders about python's data model."

@@ -4,18 +4,19 @@ import datetime as dt
 import sys
 
 
-def _str_kwargs(**kwargs: object) -> list[str]:
+def _lines(**kwargs: object) -> list[str]:
     return [f"{kwd}: {arg}" for kwd, arg in kwargs.items()]
 
 
 def main() -> None:
-    msg = _str_kwargs(
+    lines = _lines(
         version=sys.version,
         interpeter=sys.exec_prefix,
         platform=sys.platform,
         time=dt.datetime.now(dt.UTC),
     )
-    print(msg)
+    for line in lines:
+        print(line)
 
 
 if __name__ == "__main__":

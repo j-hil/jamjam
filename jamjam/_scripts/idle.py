@@ -34,6 +34,8 @@ from jamjam.winapi import (
     user32,
 )
 
+# TODO: make delay longer? mutate in debug mode?
+# Also maybe detect key input from user too.
 P = ParamSpec("P")
 T = TypeVar("T")
 R = TypeVar("R", bound=c.BaseData | c.PyNative)
