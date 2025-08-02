@@ -123,8 +123,8 @@ class Input(c.Struct):
 class Point(c.Struct):
     "https://learn.microsoft.com/windows/win32/api/windef/ns-windef-point"
 
-    x: Long
-    y: Long
+    x: Long = c.OPTIONAL  #:
+    y: Long = c.OPTIONAL  #:
 
 
 class Msg(c.Struct):
@@ -321,6 +321,18 @@ class User32(_WinDLL):
         lpdwResult: DWordPtrPtr = None,
     ) -> LResult:
         "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-sendmessagetimeoutw"
+        raise NotImplementedError
+
+    @_imp_method
+    def GetCursorPos(
+        self, lpPoint: c.Pointer[Point]
+    ) -> Bool:
+        "https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-getcursorpos"
+        raise NotImplementedError
+
+    @_imp_method
+    def SetCursorPos(self, X: Int, Y: Int) -> Bool:
+        "http://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-setcursorpos"
         raise NotImplementedError
 
 

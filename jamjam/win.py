@@ -89,6 +89,12 @@ class Wm(IntEnum):
     SETTING_CHANGE = 0x001A
     "https://learn.microsoft.com/en-us/windows/win32/winmsg/wm-settingchange"
 
+    # Keyboard Input. See https://learn.microsoft.com/en-us/windows/win32/inputdev/keyboard-input#notifications
+    KEY_DOWN    = 0x0100
+    KEY_UP      = 0x0101
+    SYSKEY_DOWN = 0x0104
+    SYSKEY_UP   = 0x0105
+
 
 class Vk(IntEnum):
     """Virtual Key enumeration & interaction.

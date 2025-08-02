@@ -6,6 +6,7 @@ __pycache__/
 
 # Packaging
 *.egg-info/
+build/
 
 # Testing & Tooling
 .mypy_cache/
