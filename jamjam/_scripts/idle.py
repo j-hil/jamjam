@@ -6,7 +6,8 @@ import sys
 from concurrent.futures import Future, ThreadPoolExecutor
 from contextlib import AbstractContextManager
 from inspect import signature
-from random import choice, random, randrange
+from math import cos, degrees, pi, sin
+from random import uniform
 from time import sleep, time
 from typing import Generic, ParamSpec, Self, TypeVar
 
@@ -14,28 +15,18 @@ from jamjam import c
 from jamjam._text import unwrap
 from jamjam.classes import EzGetDesc
 from jamjam.typing import Fn, MethodDef
-from jamjam.win import (
-    Id,
-    Mb,
-    MouseEventF,
-    Wh,
-    Wm,
-    msg_loop,
-    send_input,
-)
+from jamjam.win import Id, Mb, Wh, Wm, msg_loop
 from jamjam.winapi import (
     DWord,
     Int,
     LParam,
     LResult,
-    MouseInput,
+    Point,
     WParam,
     kernel32,
     user32,
 )
 
-# TODO: make delay longer? mutate in debug mode?
-# Also maybe detect key input from user too.
 P = ParamSpec("P")
 T = TypeVar("T")
 R = TypeVar("R", bound=c.BaseData | c.PyNative)
@@ -44,6 +35,15 @@ _log = logging.getLogger(__name__)
 _PAUSE_SECS = 3
 _HC_ACTION = 0
 "Hook Code: Actionable."
+_INPUTS = {
+    Wm.M1_DOWN,
+    Wm.M2_DOWN,
+    Wm.MOUSE_MOVE,
+    Wm.KEY_DOWN,
+    Wm.KEY_UP,
+    Wm.SYSKEY_DOWN,
+    Wm.SYSKEY_UP,
+}
 
 
 def _start_window() -> Id:
@@ -91,7 +91,7 @@ class _WinFnDesc(EzGetDesc[c.FuncPtr, T], Generic[T, P, R]):
         return cfunc
 
 
-class _MouseHook(AbstractContextManager):
+class _HookManager(AbstractContextManager):
     _thread: DWord | None = None
     _future: Future | None = None
     _user_control = True
@@ -100,37 +100,47 @@ class _MouseHook(AbstractContextManager):
         self.executor = executor
         self._last_user_input = time()
 
-    def jump_mouse(self) -> None:
-        secs = 1 + random()
-        sleep(secs)
+    def move_mouse(self) -> None:
+        r = uniform(75, 300)
+        a = uniform(-pi, pi)
+        dr = 1
+        dt = 0.01
+        steps = int(r // dr)
 
-        dx = choice([-1, 1]) * randrange(10, 50)
-        dy = choice([-1, 1]) * randrange(10, 50)
-        mi = MouseInput(
-            dx=dx, dy=dy, dwFlags=MouseEventF.MOVE
-        )
+        p0 = Point()
+        user32.GetCursorPos(p0.byref())
 
-        self._user_control = False
-        if time() - self._last_user_input > _PAUSE_SECS:
-            send_input(mi)
-            _log.info(f"Moved {dx, dy} after {secs:.2}s.")
-        self._user_control = True
+        x, y = float(p0.x), float(p0.y)
+        for _ in range(steps):
+            x += dr * cos(a)
+            y += dr * sin(a)
+            if time() - self._last_user_input < _PAUSE_SECS:
+                return
+            self._user_control = False
+            user32.SetCursorPos(int(x), int(y))
+            self._user_control = True
+            sleep(dt)
+
+        t = steps * dt
+        d = degrees(a)
+        _log.info(f"Moved {r:.2} @ {d:.2}° after {t:.2}s.")
 
     @_WinFnDesc
     def _hk(self, c: Int, wm: WParam, lp: LParam) -> LResult:
-        """Low level mouse hook procedure.
+        """Low level mouse/keyboard hook procedure.
 
-        Takes the hook code, windows mouse message & a
-        pointer to a MSLLHOOKSTRUCT (unused). See:
+        Takes the hook code, windows message & pointer to a
+        MSLLHOOKSTRUCT (unused). See:
         https://learn.microsoft.com/windows/win32/winmsg/lowlevelmouseproc
+        https://learn.microsoft.com/windows/win32/winmsg/lowlevelkeyboardproc
         """
-        _log.debug("LL mouse hook run")
+        _log.debug("LL hook run")
 
         if c != _HC_ACTION or not self._user_control:
             pass
-        elif wm in {Wm.M1_DOWN, Wm.M2_DOWN, Wm.MOUSE_MOVE}:
+        elif wm in _INPUTS:
             self._last_user_input = time()
-            _log.debug("User used mouse.")
+            _log.debug(f"User input {Wm(wm).name}")
 
         try:
             return user32.CallNextHookEx(None, c, wm, lp)
@@ -144,17 +154,17 @@ class _MouseHook(AbstractContextManager):
 
     def _start(self) -> None:
         self._thread = kernel32.GetCurrentThreadId()
-        _log.info(f"Starting hook on thread {self._thread}")
+        _log.info(f"Starting hooks on thread {self._thread}")
 
-        hook = user32.SetWindowsHookExW(
-            Wh.MOUSE_LL,
-            self._hk,
-            kernel32.GetModuleHandleW(None),
-            0,
-        )
+        module = kernel32.GetModuleHandleW(None)
+        set_hook = user32.SetWindowsHookExW
+        h1 = set_hook(Wh.MOUSE_LL, self._hk, module, 0)
+        h2 = set_hook(Wh.KEYBOARD_LL, self._hk, module, 0)
         msg_loop()
-        user32.UnhookWindowsHookEx(hook)
-        _log.info("Hook ended.")
+
+        user32.UnhookWindowsHookEx(h1)
+        user32.UnhookWindowsHookEx(h2)
+        _log.info("Hooks ended.")
 
     def __enter__(self) -> Self:
         self._future = self.executor.submit(self._start)
@@ -180,9 +190,9 @@ def main() -> None:
         while id in {Id.TRY_AGAIN, Id.CONTINUE}:
             window = executor.submit(_start_window)
             if id == Id.TRY_AGAIN:
-                with _MouseHook(executor) as hook:
+                with _HookManager(executor) as manager:
                     while not window.done():
-                        hook.jump_mouse()
+                        manager.move_mouse()
             id = window.result()
 
 
