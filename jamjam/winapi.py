@@ -192,7 +192,7 @@ def _imp_method(f: MethodDef[D, P, R]) -> MethodDef[D, P, R]:
 
 class _WinDLL(ctypes.WinDLL):
     def __init__(self) -> None:
-        self.name = f"{self.__class__.__name__.lower()}"
+        self.name = f"{self.__class__.__name__.upper()}"
         super().__init__(self.name, use_last_error=True)
 
     def __repr__(self) -> str:
