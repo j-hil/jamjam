@@ -13,7 +13,7 @@ from winreg import (
     SetValueEx,
 )
 
-from jamjam._text import unwrap
+from jamjam._utils import unwrap
 from jamjam.classes import EzGetDesc
 from jamjam.win import BROADCAST, Wm
 from jamjam.winapi import user32

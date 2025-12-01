@@ -145,6 +145,7 @@ lint.ignore = [
     "D415",    # missing-terminal-punctuation
     "D418",    # overload-with-docstring
     "DOC201",  # docstring-missing-returns
+    "DOC402",  # docstring-missing-yields
     "DOC501",  # docstring-missing-exception
     "E202",    # whitespace-before-close-bracket            # Handled by ruff format
     "E221",    # multiple-spaces-before-operator            # Handled by ruff format

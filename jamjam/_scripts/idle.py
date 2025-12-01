@@ -12,7 +12,7 @@ from time import sleep, time
 from typing import Generic, ParamSpec, Self, TypeVar
 
 from jamjam import c
-from jamjam._text import unwrap
+from jamjam._utils import unwrap
 from jamjam.classes import EzGetDesc
 from jamjam.typing import Fn, MethodDef
 from jamjam.win import Id, Mb, Wh, Wm, msg_loop
