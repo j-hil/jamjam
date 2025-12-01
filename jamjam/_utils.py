@@ -1,7 +1,8 @@
-"Text formatting."
+"These don't yet have a home."
 
 from io import StringIO
 from textwrap import dedent
+from typing import Never
 
 
 def unwrap(txt: str) -> str:
@@ -19,3 +20,10 @@ def unwrap(txt: str) -> str:
         prev = line
 
     return stream.getvalue()
+
+
+Ex = BaseException
+
+
+def raise_(ex: Ex | type[Ex] = AssertionError) -> Never:
+    raise ex

@@ -15,7 +15,7 @@ from typing import (
 )
 from typing_extensions import TypeIs, TypeVar
 
-from jamjam._text import unwrap
+from jamjam._utils import unwrap
 from jamjam.typing import Iter
 
 IR = TypeVar("IR", covariant=True)

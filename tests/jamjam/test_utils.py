@@ -1,6 +1,6 @@
 from textwrap import dedent
 
-from jamjam._text import unwrap
+from jamjam._utils import unwrap
 
 
 def test_format() -> None:
